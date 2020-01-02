@@ -1,2 +1,7 @@
 secrets.h
 .vs
+
+/AzureSphere/MySphere/.vs
+/AzureSphere/MySphere/out
+/AzureSphere/.vs/MySphere/v15
+/AzureSphere/MySphere/MySphere.vcxproj.user
