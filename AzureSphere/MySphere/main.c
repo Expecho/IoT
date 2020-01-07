@@ -20,7 +20,7 @@
    5. Read the state of the A and B buttons
    6. Read BSSID address, Wi-Fi AP SSID, Wi-Fi Frequency
    *************************************************************************************************
-      Connected application features: When connected to Azure IoT Hub or IoT Central
+	  Connected application features: When connected to Azure IoT Hub or IoT Central
    *************************************************************************************************
    7. Send X,Y,Z accelerometer data to Azure
    8. Send barometric pressure data to Azure
@@ -35,7 +35,7 @@
    TODO
    1. Add support for a OLED display
    2. Add support for on-board light sensor
-   	 
+
    *************************************************************************************************/
 
 #include <errno.h>
@@ -48,7 +48,7 @@
 #include <stdio.h>
 #include <math.h>
 
-// applibs_versions.h defines the API struct versions to use for applibs APIs.
+   // applibs_versions.h defines the API struct versions to use for applibs APIs.
 #include "applibs_versions.h"
 #include "epoll_timerfd_utilities.h"
 #include "i2c.h"
@@ -62,6 +62,7 @@
 #include <applibs/log.h>
 #include <applibs/i2c.h>
 #include <applibs/gpio.h>
+#include <applibs/adc.h>
 #include <applibs/wificonfig.h>
 #include <azureiot/iothub_device_client_ll.h>
 
@@ -81,6 +82,8 @@ int epollFd = -1;
 static int buttonPollTimerFd = -1;
 static int buttonAGpioFd = -1;
 static int buttonBGpioFd = -1;
+static int adcControllerFd = -1;
+static int adcPollTimerFd = -1;
 
 int userLedRedFd = -1;
 int userLedGreenFd = -1;
@@ -95,7 +98,7 @@ static GPIO_Value_Type buttonAState = GPIO_Value_High;
 static GPIO_Value_Type buttonBState = GPIO_Value_High;
 
 #if (defined(IOT_CENTRAL_APPLICATION) || defined(IOT_HUB_APPLICATION))
-	bool versionStringSent = false;
+bool versionStringSent = false;
 #endif
 
 // Define the Json string format for the accelerator button press data
@@ -109,8 +112,8 @@ volatile sig_atomic_t terminationRequired = false;
 /// </summary>
 static void TerminationHandler(int signalNumber)
 {
-    // Don't use Log_Debug here, as it is not guaranteed to be async-signal-safe.
-    terminationRequired = true;
+	// Don't use Log_Debug here, as it is not guaranteed to be async-signal-safe.
+	terminationRequired = true;
 }
 
 /// <summary>
@@ -119,11 +122,11 @@ static void TerminationHandler(int signalNumber)
 /// <param name="messageFormat">The format of the message</param>
 /// <param name="maxLength">The maximum length of the formatted message string</param>
 /// <returns>The pointer to the heap allocated memory.</returns>
-static void *SetupHeapMessage(const char *messageFormat, size_t maxLength, ...)
+static void* SetupHeapMessage(const char* messageFormat, size_t maxLength, ...)
 {
 	va_list args;
 	va_start(args, maxLength);
-	char *message =
+	char* message =
 		malloc(maxLength + 1); // Ensure there is space for the null terminator put by vsnprintf.
 	if (message != NULL) {
 		vsnprintf(message, maxLength, messageFormat, args);
@@ -144,7 +147,7 @@ static void *SetupHeapMessage(const char *messageFormat, size_t maxLength, ...)
 /// <returns>200 HTTP status code if the method name is reconginized and the payload is correctly parsed;
 /// 400 HTTP status code if the payload is invalid;</returns>
 /// 404 HTTP status code if the method name is unknown.</returns>
-static int DirectMethodCall (const char *methodName, const char *payload, size_t payloadSize, char **responsePayload, size_t *responsePayloadSize)
+static int DirectMethodCall(const char* methodName, const char* payload, size_t payloadSize, char** responsePayload, size_t* responsePayloadSize)
 {
 	Log_Debug("\nDirect Method called %s\n", methodName);
 
@@ -205,7 +208,7 @@ static int DirectMethodCall (const char *methodName, const char *payload, size_t
 			memcpy(directMethodCallContent, payload, payloadSize);
 			directMethodCallContent[payloadSize] = 0; // Null terminated string.
 
-			JSON_Value *payloadJson = json_parse_string(directMethodCallContent);
+			JSON_Value* payloadJson = json_parse_string(directMethodCallContent);
 
 			// Verify we have a valid JSON string from the payload
 			if (payloadJson == NULL) {
@@ -213,7 +216,7 @@ static int DirectMethodCall (const char *methodName, const char *payload, size_t
 			}
 
 			// Verify that the payloadJson contains a valid JSON object
-			JSON_Object *pollTimeJson = json_value_get_object(payloadJson);
+			JSON_Object* pollTimeJson = json_value_get_object(payloadJson);
 			if (pollTimeJson == NULL) {
 				goto payloadError;
 			}
@@ -261,7 +264,7 @@ static int DirectMethodCall (const char *methodName, const char *payload, size_t
 		}
 
 	}
-		else {
+	else {
 		Log_Debug("Payload size > 32 bytes, aborting Direct Method execution\n");
 		goto payloadError;
 	}
@@ -294,7 +297,7 @@ payloadError:
 /// <summary>
 ///     Handle button timer event: if the button is pressed, report the event to the IoT Hub.
 /// </summary>
-static void ButtonTimerEventHandler(EventData *eventData)
+static void ButtonTimerEventHandler(EventData* eventData)
 {
 
 	bool sendTelemetryButtonA = false;
@@ -324,7 +327,7 @@ static void ButtonTimerEventHandler(EventData *eventData)
 		else {
 			Log_Debug("Button A released!\n");
 		}
-		
+
 		// Update the static variable to use next time we enter this routine
 		buttonAState = newButtonAState;
 	}
@@ -354,11 +357,11 @@ static void ButtonTimerEventHandler(EventData *eventData)
 		// Update the static variable to use next time we enter this routine
 		buttonBState = newButtonBState;
 	}
-	
+
 	// If either button was pressed, then enter the code to send the telemetry message
 	if (sendTelemetryButtonA || sendTelemetryButtonB) {
 
-		char *pjsonBuffer = (char *)malloc(JSON_BUFFER_SIZE);
+		char* pjsonBuffer = (char*)malloc(JSON_BUFFER_SIZE);
 		if (pjsonBuffer == NULL) {
 			Log_Debug("ERROR: not enough memory to send telemetry");
 		}
@@ -385,26 +388,48 @@ static void ButtonTimerEventHandler(EventData *eventData)
 // event handler data structures. Only the event handler field needs to be populated.
 static EventData buttonEventData = { .eventHandler = &ButtonTimerEventHandler };
 
+static void AdcPollingEventHandler(EventData* eventData)
+{
+	if (ConsumeTimerFdEvent(adcPollTimerFd) != 0) {
+		terminationRequired = true;
+		return;
+	}
+
+	uint32_t value;
+	int result = ADC_Poll(adcControllerFd, 0, &value);
+	if (result < -1) {
+		Log_Debug("ADC_Poll failed with error: %s (%d)\n", strerror(errno), errno);
+		terminationRequired = true;
+		return;
+	}
+
+	//float voltage = ((float)value * sampleMaxVoltage) / (float)((1 << sampleBitCount) - 1);
+	Log_Debug("The out sample value is %.3f lux\n", value);
+}
+
+// event handler data structures. Only the event handler field needs to be populated.
+static EventData adcPollingEventData = { .eventHandler = &AdcPollingEventHandler };
+
 /// <summary>
 ///     Set up SIGTERM termination handler, initialize peripherals, and set up event handlers.
 /// </summary>
 /// <returns>0 on success, or -1 on failure</returns>
 static int InitPeripheralsAndHandlers(void)
 {
-    struct sigaction action;
-    memset(&action, 0, sizeof(struct sigaction));
-    action.sa_handler = TerminationHandler;
-    sigaction(SIGTERM, &action, NULL);
+	struct sigaction action;
+	memset(&action, 0, sizeof(struct sigaction));
+	action.sa_handler = TerminationHandler;
+	sigaction(SIGTERM, &action, NULL);
 
-    epollFd = CreateEpollFd();
-    if (epollFd < 0) {
-        return -1;
-    }
+	epollFd = CreateEpollFd();
+	if (epollFd < 0) {
+		return -1;
+	}
 
 	if (initI2c() == -1) {
 		return -1;
 	}
-	
+
 	// Traverse the twin Array and for each GPIO item in the list open the file descriptor
 	for (int i = 0; i < twinArraySize; i++) {
 
@@ -446,13 +471,21 @@ static int InitPeripheralsAndHandlers(void)
 		return -1;
 	}
 
+	// Set up a timer to poll the buttons
+	struct timespec adcControllerCheckPeriod = { 0, 1000000 };
+	adcPollTimerFd =
+		CreateTimerFdAndAddToEpoll(epollFd, &adcControllerCheckPeriod, &adcPollingEventData, EPOLLIN);
+	if (adcPollTimerFd < 0) {
+		return -1;
+	}
+
 	// Tell the system about the callback function that gets called when we receive a device twin update message from Azure
 	AzureIoT_SetDeviceTwinUpdateCallback(&deviceTwinChangedHandler);
 
 	// Tell the system about the callback function to call when we receive a Direct Method message from Azure
 	AzureIoT_SetDirectMethodCallback(&DirectMethodCall);
 
-    return 0;
+	return 0;
 }
 
 /// <summary>
@@ -460,13 +493,15 @@ static int InitPeripheralsAndHandlers(void)
 /// </summary>
 static void ClosePeripheralsAndHandlers(void)
 {
-    Log_Debug("Closing file descriptors.\n");
-    
+	Log_Debug("Closing file descriptors.\n");
+
 	closeI2c();
-    CloseFdAndPrintError(epollFd, "Epoll");
+	CloseFdAndPrintError(epollFd, "Epoll");
 	CloseFdAndPrintError(buttonPollTimerFd, "buttonPoll");
 	CloseFdAndPrintError(buttonAGpioFd, "buttonA");
 	CloseFdAndPrintError(buttonBGpioFd, "buttonB");
+	CloseFdAndPrintError(adcPollTimerFd, "adcPoll");
+	CloseFdAndPrintError(adcControllerFd, "adc");
 
 	// Traverse the twin Array and for each GPIO item in the list the close the file descriptor
 	for (int i = 0; i < twinArraySize; i++) {
@@ -482,28 +517,28 @@ static void ClosePeripheralsAndHandlers(void)
 /// <summary>
 ///     Main entry point for this application.
 /// </summary>
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
 	// Variable to help us send the version string up only once
 	bool networkConfigSent = false;
 	char ssid[128];
 	uint32_t frequency;
 	char bssid[20];
-	
+
 	// Clear the ssid array
 	memset(ssid, 0, 128);
 
 	Log_Debug("Version String: %s\n", argv[1]);
 	Log_Debug("Avnet Starter Kit Simple Reference Application starting.\n");
-    if (InitPeripheralsAndHandlers() != 0) {
-        terminationRequired = true;
-    }
+	if (InitPeripheralsAndHandlers() != 0) {
+		terminationRequired = true;
+	}
 
-    // Use epoll to wait for events and trigger handlers, until an error or SIGTERM happens
-    while (!terminationRequired) {
-        if (WaitForEventAndCallHandler(epollFd) != 0) {
-            terminationRequired = true;
-        }
+	// Use epoll to wait for events and trigger handlers, until an error or SIGTERM happens
+	while (!terminationRequired) {
+		if (WaitForEventAndCallHandler(epollFd) != 0) {
+			terminationRequired = true;
+		}
 
 #if (defined(IOT_CENTRAL_APPLICATION) || defined(IOT_HUB_APPLICATION))
 		// Setup the IoT Hub client.
@@ -526,11 +561,11 @@ int main(int argc, char *argv[])
 
 			frequency = network.frequencyMHz;
 			snprintf(bssid, JSON_BUFFER_SIZE, "%02x:%02x:%02x:%02x:%02x:%02x",
-				network.bssid[0], network.bssid[1], network.bssid[2], 
+				network.bssid[0], network.bssid[1], network.bssid[2],
 				network.bssid[3], network.bssid[4], network.bssid[5]);
 
-			if ((strncmp(ssid, (char*)&network.ssid, network.ssidLength)!=0) || !networkConfigSent) {
-				
+			if ((strncmp(ssid, (char*)&network.ssid, network.ssidLength) != 0) || !networkConfigSent) {
+
 				memset(ssid, 0, 128);
 				strncpy(ssid, network.ssid, network.ssidLength);
 				Log_Debug("SSID: %s\n", ssid);
@@ -546,7 +581,7 @@ int main(int argc, char *argv[])
 				checkAndUpdateDeviceTwin("bssid", &bssid, TYPE_STRING, false);
 #endif 
 			}
-		}	   		 	  	  	   	
+		}
 #if (defined(IOT_CENTRAL_APPLICATION) || defined(IOT_HUB_APPLICATION))
 		if (iothubClientHandle != NULL && !versionStringSent) {
 
@@ -558,9 +593,9 @@ int main(int argc, char *argv[])
 		// the flow of data with the Azure IoT Hub
 		AzureIoT_DoPeriodicTasks();
 #endif
-    }
+	}
 
-    ClosePeripheralsAndHandlers();
-    Log_Debug("Application exiting.\n");
-    return 0;
+	ClosePeripheralsAndHandlers();
+	Log_Debug("Application exiting.\n");
+	return 0;
 }
