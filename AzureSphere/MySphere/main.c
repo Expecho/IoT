@@ -93,6 +93,12 @@ int wifiLedFd = -1;
 int clickSocket1Relay1Fd = -1;
 int clickSocket1Relay2Fd = -1;
 
+// The size of a sample in bits
+static int sampleBitCount = -1;
+
+// The maximum voltage
+static float sampleMaxVoltage = 2.5f;
+
 // Button state variables, initilize them to button not-pressed (High)
 static GPIO_Value_Type buttonAState = GPIO_Value_High;
 static GPIO_Value_Type buttonBState = GPIO_Value_High;
@@ -403,8 +409,8 @@ static void AdcPollingEventHandler(EventData* eventData)
 		return;
 	}
 
-	//float voltage = ((float)value * sampleMaxVoltage) / (float)((1 << sampleBitCount) - 1);
-	Log_Debug("The out sample value is %.3f lux\n", value);
+	float voltage = ((float)value * sampleMaxVoltage) / (float)((1 << sampleBitCount) - 1);
+	Log_Debug("ALS-PT19: Output [xxx] :  %6.6f V\n", voltage);
 }
 
 // event handler data structures. Only the event handler field needs to be populated.
@@ -470,9 +476,32 @@ static int InitPeripheralsAndHandlers(void)
 	if (buttonPollTimerFd < 0) {
 		return -1;
 	}
+	
+	adcControllerFd = ADC_Open(AVNET_AESMS_ADC_CONTROLLER0);
+	if (adcControllerFd < 0) {
+		Log_Debug("ADC_Open failed with error: %s (%d)\n", strerror(errno), errno);
+		return -1;
+	}
 
-	// Set up a timer to poll the buttons
-	struct timespec adcControllerCheckPeriod = { 0, 1000000 };
+	sampleBitCount = ADC_GetSampleBitCount(adcControllerFd, AVNET_AESMS_ADC_CONTROLLER0);
+	if (sampleBitCount == -1) {
+		Log_Debug("ADC_GetSampleBitCount failed with error : %s (%d)\n", strerror(errno), errno);
+		return -1;
+	}
+	if (sampleBitCount == 0) {
+		Log_Debug("ADC_GetSampleBitCount returned sample size of 0 bits.\n");
+		return -1;
+	}
+
+	int result = ADC_SetReferenceVoltage(adcControllerFd, AVNET_AESMS_ADC_CONTROLLER0,
+		sampleMaxVoltage);
+	if (result < 0) {
+		Log_Debug("ADC_SetReferenceVoltage failed with error : %s (%d)\n", strerror(errno), errno);
+		return -1;
+	}
+
+	// Set up a timer to poll the adc controller
+	struct timespec adcControllerCheckPeriod = { 1, 0 };
 	adcPollTimerFd =
 		CreateTimerFdAndAddToEpoll(epollFd, &adcControllerCheckPeriod, &adcPollingEventData, EPOLLIN);
 	if (adcPollTimerFd < 0) {
