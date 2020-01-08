@@ -409,8 +409,13 @@ static void AdcPollingEventHandler(EventData* eventData)
 		return;
 	}
 
-	float voltage = ((float)value * sampleMaxVoltage) / (float)((1 << sampleBitCount) - 1);
-	Log_Debug("ALS-PT19: Output [xxx] :  %6.6f V\n", voltage);
+	// get voltage (2.5adc_reading/4096)
+	// divide by 3650 (3.65 kohm) to get current (A)
+	// multiply by 1000000 to get uA
+	// divide by 0.1428 to get Lux (based on fluorescent light Fig. 1 datasheet)
+	// divide by 0.5 to get Lux (based on incandescent light Fig. 1 datasheet)
+	float light_sensor = ((float)value * 2.5 / 4095) * 1000000 / (3650 * 0.1428);
+	Log_Debug("ALS-PT19: Ambient Light[Lux] : %.2f", light_sensor);
 }
 
 // event handler data structures. Only the event handler field needs to be populated.
@@ -476,7 +481,7 @@ static int InitPeripheralsAndHandlers(void)
 	if (buttonPollTimerFd < 0) {
 		return -1;
 	}
-	
+
 	adcControllerFd = ADC_Open(AVNET_AESMS_ADC_CONTROLLER0);
 	if (adcControllerFd < 0) {
 		Log_Debug("ADC_Open failed with error: %s (%d)\n", strerror(errno), errno);
@@ -616,13 +621,13 @@ int main(int argc, char* argv[])
 
 			checkAndUpdateDeviceTwin("versionString", argv[1], TYPE_STRING, false);
 			versionStringSent = true;
-		}
+			}
 
 		// AzureIoT_DoPeriodicTasks() needs to be called frequently in order to keep active
 		// the flow of data with the Azure IoT Hub
 		AzureIoT_DoPeriodicTasks();
 #endif
-	}
+		}
 
 	ClosePeripheralsAndHandlers();
 	Log_Debug("Application exiting.\n");
