@@ -15,6 +15,9 @@
 const int STATUS_LED = 2;
 const int MOTION_DETECTOR = 12;
 
+const int LED_ON = LOW;
+const int LED_OFF = HIGH; 
+
 WiFiClient espClient;
 PubSubClient client(espClient);
 
@@ -71,13 +74,19 @@ void loop() {
   client.loop();
   
   long state = digitalRead(MOTION_DETECTOR);
+  
   if(state == lastState)
+  {
     return;
+  }
 
-  digitalWrite (STATUS_LED, state == HIGH ? LOW : HIGH);
-  client.publish(motion_topic, state == HIGH ? "On" : "Off", true);
+  if(state == HIGH)
+  {
+    client.publish(motion_topic, "ON", true);
+  }
+  
+  digitalWrite (STATUS_LED, state == HIGH ? LED_ON : LED_OFF);
 
   lastState = state;
-
   delay(1000);
 }
