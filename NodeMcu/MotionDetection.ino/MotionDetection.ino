@@ -85,7 +85,7 @@ void loop() {
     client.publish(motion_topic, "ON", true);
   }
   
-  digitalWrite (STATUS_LED, state == HIGH ? LED_ON : LED_OFF);
+  //digitalWrite (STATUS_LED, state == HIGH ? LED_ON : LED_OFF);
 
   lastState = state;
   delay(1000);
