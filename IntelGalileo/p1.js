@@ -11,7 +11,11 @@ var mqttClient = mqtt.connect({
   host: 'farmer.cloudmqtt.com',
   port: 11245,
   username: secrets.mqttUsr,
-  password: secrets.mqttPwd
+  password: secrets.mqttPwd,
+  will:{
+    topic: 'galileo/status',
+    payload: "disconnected"
+  }
 });
 
 var connectionString = secrets.iotConn;
@@ -23,6 +27,7 @@ var board = new five.Board({
 
 var received = '';
 var lastGasReading = 0;
+var firstReading = true;
 
 board.on("ready", function () {
   var sp = new Serialport("/dev/ttyUSB0", {
@@ -45,6 +50,11 @@ board.on("ready", function () {
         const packet = received.substr(startCharPos, endCharPos - startCharPos);
         const parsedPacket = parsePacket(packet);
 
+        if(firstReading == true) {
+          mqttClient.publish("galileo/status", "connected");
+          console.log(JSON.stringify(parsedPacket, function replacer(key, value) { return value}));
+          firstReading = false;
+        }
         received = '';
 
         if (parsedPacket.timestamp !== null) {
