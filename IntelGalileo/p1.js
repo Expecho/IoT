@@ -28,6 +28,9 @@ var board = new five.Board({
 var received = '';
 var lastGasReading = 0;
 var firstReading = true;
+var keepAliveCounter = 0;
+
+
 
 board.on("ready", function () {
   var sp = new Serialport("/dev/ttyUSB0", {
@@ -37,8 +40,9 @@ board.on("ready", function () {
   sp.on("open", function () {
     console.log("Port /dev/ttyUSB0 is open!");
 
-    // Once the port is open, you may read or write to it.
     sp.on("data", function (data) {
+      sendKeepAlive()  
+
       var client = Client.fromConnectionString(connectionString, Protocol);
       received += data.toString();
 
@@ -65,7 +69,7 @@ board.on("ready", function () {
           var message = createDeviceToCloudMessage(parsedPacket);
           client.sendEvent(message, function (err) {
             if (err) {
-              console.log(err);
+              console.log("Send failed: " + err);
             } else {
               // console.log("Send message");
             }
@@ -77,6 +81,18 @@ board.on("ready", function () {
     });
   });
 });
+
+// publish a keep alive message to designated status copy
+function sendKeepAlive()
+{
+  keepAliveCounter++;
+
+  if(keepAliveCounter > 60) // ~10 minutes
+  {
+    keepAliveCounter = 0;
+    mqttClient.publish("galileo/status", "connected");
+  }
+}
 
 function parsePacket(packet) {
   var lines = packet.split(/\r\n|\n|\r/);
