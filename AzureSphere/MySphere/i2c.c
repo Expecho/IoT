@@ -14,7 +14,7 @@
 #include "hw/avnet_mt3620_sk.h"
 
 #include "deviceTwin.h"
-//#include "azure_iot_utilities.h"
+#include "azure_iot_utilities.h"
 #include "build_options.h"
 #include "i2c.h"
 #include "lsm6dso_reg.h"

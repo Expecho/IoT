@@ -15,13 +15,10 @@
 #include "hw/avnet_mt3620_sk.h"
 
 #include "deviceTwin.h"
-//#include "azure_iot_utilities.h"
-//#include "connection_strings.h"
 #include "build_options.h"
 
 #include <applibs/log.h>
 #include <applibs/i2c.h>
-//#include <applibs/gpio.h>
 #include <applibs/adc.h>
 #include <applibs/wificonfig.h>
 
@@ -73,7 +70,7 @@ static void AdcPollingEventHandler(EventData* eventData)
    // multiply by 1000000 to get uA
    // divide by 0.1428 to get Lux (based on fluorescent light Fig. 1 datasheet)
    // divide by 0.5 to get Lux (based on incandescent light Fig. 1 datasheet)
-   float light_sensor = ((float)value * 2.5 / 4095) * 1000000 / (3650 * 0.1428);
+   double light_sensor = (value * 2.5 / 4095) * 1000000 / (3650 * 0.1428);
    Log_Debug("ALS-PT19: Ambient Light[Lux] : %.2f", light_sensor);
 }
 
