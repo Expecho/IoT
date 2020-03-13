@@ -22,6 +22,8 @@
 #include <applibs/adc.h>
 #include <applibs/wificonfig.h>
 
+#include <curl/curl.h>
+
 
 extern int accelTimerFd;
 
@@ -29,6 +31,7 @@ extern int accelTimerFd;
 static void TerminationHandler(int signalNumber);
 static int InitPeripheralsAndHandlers(void);
 static void ClosePeripheralsAndHandlers(void);
+static void Send(void);
 
 int epollFd = -1;
 
@@ -37,6 +40,9 @@ static int adcPollTimerFd = -1;
 
 static int sampleBitCount = -1;
 static float sampleMaxVoltage = 2.5f;
+
+static CURL* curl;
+static CURLcode res;
 
 // Termination state
 volatile sig_atomic_t terminationRequired = false;
@@ -72,6 +78,7 @@ static void AdcPollingEventHandler(EventData* eventData)
    // divide by 0.5 to get Lux (based on incandescent light Fig. 1 datasheet)
    double light_sensor = (value * 2.5 / 4095) * 1000000 / (3650 * 0.1428);
    Log_Debug("ALS-PT19: Ambient Light[Lux] : %.2f", light_sensor);
+   Send();
 }
 
 // event handler data structures. Only the event handler field needs to be populated.
@@ -164,6 +171,8 @@ int main(int argc, char* argv[])
       terminationRequired = true;
    }
 
+   curl_global_init(CURL_GLOBAL_ALL);
+   
    // Use epoll to wait for events and trigger handlers, until an error or SIGTERM happens
    while (!terminationRequired) {
       if (WaitForEventAndCallHandler(epollFd) != 0) {
@@ -195,6 +204,32 @@ int main(int argc, char* argv[])
    }
 
    ClosePeripheralsAndHandlers();
+   
+   curl_global_cleanup();
+
    Log_Debug("Application exiting.\n");
    return 0;
+}
+
+static void Send(void)
+{
+   curl = curl_easy_init();
+   if (curl) {
+      /* First set the URL that is about to receive our POST. This URL can
+         just as well be a https:// URL if that is what should receive the
+         data. */
+      curl_easy_setopt(curl, CURLOPT_URL, "https://iotdemo-expecho.azurewebsites.net/api/AzureSphereTrigger?code=bTIKhvqdZxTSlx9AaMrgsupk65/fCUFCqU5umRv2LFzDLsJFjC/0tw==");
+      /* Now specify the POST data */
+      curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "name=daniel&project=curl");
+
+      /* Perform the request, res will get the return code */
+      res = curl_easy_perform(curl);
+      /* Check for errors */
+      if (res != CURLE_OK)
+         Log_Debug("curl_easy_perform() failed: %s\n",
+            curl_easy_strerror(res));
+
+      /* always cleanup */
+      curl_easy_cleanup(curl);
+   }
 }
