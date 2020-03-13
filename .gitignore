@@ -1,5 +1,7 @@
 secrets.*
 .vs
+obj/
+bin/
 
 /AzureSphere/MySphere/.vs
 /AzureSphere/MySphere/out
