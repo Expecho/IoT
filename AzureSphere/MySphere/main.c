@@ -12,6 +12,7 @@
 #include "applibs_versions.h"
 #include "epoll_timerfd_utilities.h"
 #include "i2c.h"
+#include "azurefunction.h"
 #include "hw/avnet_mt3620_sk.h"
 
 #include "deviceTwin.h"
@@ -22,6 +23,7 @@
 #include <applibs/adc.h>
 #include <applibs/wificonfig.h>
 
+#include <curl/curl.h>
 
 extern int accelTimerFd;
 
@@ -34,6 +36,9 @@ int epollFd = -1;
 
 static int adcControllerFd = -1;
 static int adcPollTimerFd = -1;
+
+static double summedValue = 0;
+static int valueCount = 0;
 
 static int sampleBitCount = -1;
 static float sampleMaxVoltage = 2.5f;
@@ -72,6 +77,16 @@ static void AdcPollingEventHandler(EventData* eventData)
    // divide by 0.5 to get Lux (based on incandescent light Fig. 1 datasheet)
    double light_sensor = (value * 2.5 / 4095) * 1000000 / (3650 * 0.1428);
    Log_Debug("ALS-PT19: Ambient Light[Lux] : %.2f", light_sensor);
+   
+   summedValue += light_sensor;
+   
+   ++valueCount;
+   if (valueCount == 6)
+   {
+      Send("AmbientLight", summedValue/valueCount);
+      valueCount = 0;
+      summedValue = 0;
+   }
 }
 
 // event handler data structures. Only the event handler field needs to be populated.
@@ -121,7 +136,7 @@ static int InitPeripheralsAndHandlers(void)
    }
 
    // Set up a timer to poll the adc controller
-   struct timespec adcControllerCheckPeriod = { 1, 0 };
+   struct timespec adcControllerCheckPeriod = { 10, 0 };
    adcPollTimerFd =
       CreateTimerFdAndAddToEpoll(epollFd, &adcControllerCheckPeriod, &adcPollingEventData, EPOLLIN);
    if (adcPollTimerFd < 0) {
@@ -164,6 +179,8 @@ int main(int argc, char* argv[])
       terminationRequired = true;
    }
 
+   curl_global_init(CURL_GLOBAL_ALL);
+   
    // Use epoll to wait for events and trigger handlers, until an error or SIGTERM happens
    while (!terminationRequired) {
       if (WaitForEventAndCallHandler(epollFd) != 0) {
@@ -195,6 +212,9 @@ int main(int argc, char* argv[])
    }
 
    ClosePeripheralsAndHandlers();
+   
+   curl_global_cleanup();
+   
    Log_Debug("Application exiting.\n");
    return 0;
 }

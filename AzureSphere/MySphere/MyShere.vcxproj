@@ -51,7 +51,7 @@
     <ClCompile Include="parson.c" />
     <ClInclude Include="azure_iot_utilities.h" />
     <ClInclude Include="build_options.h" />
-    <ClInclude Include="connection_strings.h" />
+    <ClInclude Include="secrets.h" />
     <ClInclude Include="deviceTwin.h" />
     <ClInclude Include="epoll_timerfd_utilities.h" />
     <ClInclude Include="parson.h" />
