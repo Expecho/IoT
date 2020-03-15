@@ -17,6 +17,7 @@
 #include "azure_iot_utilities.h"
 #include "build_options.h"
 #include "i2c.h"
+#include "azurefunction.h"
 #include "lsm6dso_reg.h"
 #include "lps22hh_reg.h"
 
@@ -32,6 +33,8 @@ lsm6dso_ctx_t dev_ctx;
 lps22hh_ctx_t pressure_ctx;
 bool lps22hhDetected;
 
+float summedValue = 0;
+int valueCount = 0;
 
 //Extern variables
 int i2cFd = -1;
@@ -92,6 +95,16 @@ void AccelTimerEventHandler(EventData *eventData)
 			pressure_hPa = lps22hh_from_lsb_to_hpa(data_raw_pressure.i32bit);
 
 			Log_Debug("LPS22HH: Pressure     [hPa] : %.2f\r\n", pressure_hPa);
+
+			summedValue += pressure_hPa;
+
+			++valueCount;
+			if (valueCount == 6)
+			{
+				Send("PressurehPa", summedValue / valueCount);
+				valueCount = 0;
+				summedValue = 0;
+			}
 		}
 	}
 	// LPS22HH was not detected
