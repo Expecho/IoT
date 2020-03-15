@@ -17,7 +17,7 @@ static void Send(char* sensor, double value)
       /* First set the URL that is about to receive our POST. This URL can
          just as well be a https:// URL if that is what should receive the
          data. */
-      curl_easy_setopt(curl, CURLOPT_URL, "https://azuresphere-exp.azurewebsites.net/api/AzureSphereTrigger?code=979eR8ajLcv2HECtDX5pKee89rOSA3og3avmu7HVagcBHNyfsD2dbg==");
+      curl_easy_setopt(curl, CURLOPT_URL, "http://azuresphere-exp.azurewebsites.net/api/AzureSphere?code=Danu127ggN4JbFKm1OS8oJmr4xJSE2XDAASMfxxtSmbUf6ZFPQ4wdg==");
 
       /* Now specify the POST data */
       char* postdata = (char*)malloc(50 * sizeof(char));

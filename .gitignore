@@ -2,6 +2,7 @@ secrets.*
 .vs
 obj/
 bin/
+PublishProfiles/
 
 /AzureSphere/MySphere/.vs
 /AzureSphere/MySphere/out
