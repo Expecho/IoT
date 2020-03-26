@@ -42,7 +42,7 @@ void connect_wifi() {
 void connect_mqtt() {
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
-    if (client.connect("ESP8266Client", mqtt_user, mqtt_password)) {
+    if (client.connect("ESP8266Client", mqtt_user, mqtt_password, "motion/status", 0, 0, "disconnected")) {
       Serial.println("connected");
     } else {
       Serial.print("failed, rc=");
