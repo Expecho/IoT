@@ -16,7 +16,7 @@ namespace MqttFunction
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequest req,
             ILogger log,
-            [Mqtt] ICollector<IMqttMessage> outMessages)
+            [Mqtt(typeof(MqttConfigFactory))] ICollector<IMqttMessage> outMessages)
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
 
