@@ -6,5 +6,5 @@ Code running on my home automation IoT devices.
 - The [NodeMCU V3 device](https://www.instructables.com/id/Getting-Started-With-ESP8266LiLon-NodeMCU-V3Flashi/) detects motion using an attached motion sensor. Data is send using mqtt.
 - A [Intel Galileo Gen 2](https://www.arduino.cc/en/ArduinoCertified/IntelGalileoGen2) is used for P1 port readings (gas and electricity consumption). It is connected to an [Azure IoT Central](https://azure.microsoft.com/en-us/services/iot-central/) application, but it also sends the actual consumption to an mqtt broker.
 
-All data is received by Home Assistant using mqtt. See my [Home Assistant config repo](https://github.com/Expecho/HomeAssistant) for additional details. 
+All data is received by Home Assistant using [mqtt](http://mqtt.org/). See my [Home Assistant config repo](https://github.com/Expecho/HomeAssistant) for additional details. 
 
