@@ -22,6 +22,12 @@ namespace MqttFunction
 
             var formDatas = await req.ReadFormAsync();
 
+            outMessages.Add(
+                new MqttMessage("azsphere/status",
+                    Encoding.UTF8.GetBytes("connected"),
+                    MqttQualityOfServiceLevel.AtLeastOnce,
+                    false));
+
             foreach (var formData in formDatas.Keys)
                 outMessages.Add(
                     new MqttMessage($"sensor/{formData.ToLowerInvariant()}",
