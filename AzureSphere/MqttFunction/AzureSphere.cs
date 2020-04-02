@@ -12,6 +12,8 @@ namespace MqttFunction
 {
     public static class AzureSphere
     {
+        private static bool birthMessageSend;
+
         [FunctionName("AzureSphere")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequest req,
@@ -22,11 +24,15 @@ namespace MqttFunction
 
             var formDatas = await req.ReadFormAsync();
 
-            outMessages.Add(
-                new MqttMessage("azsphere/status",
-                    Encoding.UTF8.GetBytes("connected"),
-                    MqttQualityOfServiceLevel.AtLeastOnce,
-                    false));
+            if (!birthMessageSend)
+            {
+                outMessages.Add(
+                    new MqttMessage("azsphere/status",
+                        Encoding.UTF8.GetBytes("connected"),
+                        MqttQualityOfServiceLevel.AtLeastOnce,
+                        false));
+                birthMessageSend = true;
+            }
 
             foreach (var formData in formDatas.Keys)
                 outMessages.Add(
