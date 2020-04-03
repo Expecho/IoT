@@ -44,6 +44,7 @@ void connect_mqtt() {
     Serial.print("Attempting MQTT connection...");
     if (client.connect("ESP8266Client", mqtt_user, mqtt_password, "motion/status", 0, 0, "disconnected")) {
       Serial.println("connected");
+      client.publish("motion/status", "connected", false);
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -86,7 +87,9 @@ void loop() {
   }
   
   //digitalWrite (STATUS_LED, state == HIGH ? LED_ON : LED_OFF);
-
+  digitalWrite(STATUS_LED, LED_OFF)
+  
   lastState = state;
+  
   delay(1000);
 }
