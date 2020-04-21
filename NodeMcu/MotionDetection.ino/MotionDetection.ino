@@ -83,6 +83,7 @@ void loop() {
 
   if(state == HIGH)
   {
+    client.publish("motion/status", "connected", false);
     client.publish(motion_topic, "ON", true);
   }
   
