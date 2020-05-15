@@ -6,7 +6,8 @@ var Protocol = require('azure-iot-device-mqtt').Mqtt;
 var Message = require('azure-iot-device').Message;
 var secrets = require('./secrets');
 var parsePacket = require('./DSMRPacketParser');
-var mqtt = require('mqtt')
+var mqtt = require('mqtt');
+var ping = require('ping');
 
 // Define clients
 var azureIotCentralClient = AzureIotCentralClient.fromConnectionString(secrets.iotConn, Protocol);
@@ -50,6 +51,7 @@ board.on("ready", function () {
 
       var packageCompleted = startCharPos >= 0 && endCharPos >= 0
       if (packageCompleted) {
+        checkConnectivity();
         sendDeviceOnlineMessage();
 
         const packet = received.substr(startCharPos, endCharPos - startCharPos);
@@ -74,6 +76,17 @@ board.on("ready", function () {
     });
   });
 });
+
+function checkConnectivity() {
+  ping.sys.probe("cloudmqtt.com", function (isAlive) {
+    if (isAlive) {
+      console.log(msg);
+    }
+    else {
+      require('reboot').reboot();
+    }
+  });
+}
 
 // publish a device online message to the designated mqtt status topic
 function sendDeviceOnlineMessage() {
