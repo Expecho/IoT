@@ -51,42 +51,44 @@ board.on("ready", function () {
 
       var packageCompleted = startCharPos >= 0 && endCharPos >= 0
       if (packageCompleted) {
-        checkConnectivity();
-        sendDeviceOnlineMessage();
+        var cfg = {
+          deadline: 5,
+        };
 
-        const packet = received.substr(startCharPos, endCharPos - startCharPos);
-        const parsedPacket = parsePacket(packet);
-
-        received = '';
-
-        if (parsedPacket.timestamp == null) {
-          console.log("Invalid reading: " + parsedPacket);
-          return;
-        }
-
-        var jsonMessage = createJsonFromParsedData(parsedPacket);
-        mqttClient.publish("sensor/p1", jsonMessage);
-
-        azureIotCentralClient.sendEvent(new Message(jsonMessage), function (err) {
-          if (err) {
-            console.log("Send failed: " + err);
+        ping.sys.probe("192.168.1.1", function (isAlive) {
+          if (isAlive) {
+            console.log("alive");
           }
-        });
+          else {
+            console.log("dead");
+            require('reboot').reboot();
+          }
+
+          sendDeviceOnlineMessage();
+
+          const packet = received.substr(startCharPos, endCharPos - startCharPos);
+          const parsedPacket = parsePacket(packet);
+
+          received = '';
+
+          if (parsedPacket.timestamp == null) {
+            console.log("Invalid reading: " + parsedPacket);
+            return;
+          }
+
+          var jsonMessage = createJsonFromParsedData(parsedPacket);
+          mqttClient.publish("sensor/p1", jsonMessage);
+
+          azureIotCentralClient.sendEvent(new Message(jsonMessage), function (err) {
+            if (err) {
+              console.log("Send failed: " + err);
+            }
+          });
+        }, cfg);
       }
     });
   });
 });
-
-function checkConnectivity() {
-  ping.sys.probe("cloudmqtt.com", function (isAlive) {
-    if (isAlive) {
-      console.log(msg);
-    }
-    else {
-      require('reboot').reboot();
-    }
-  });
-}
 
 // publish a device online message to the designated mqtt status topic
 function sendDeviceOnlineMessage() {
