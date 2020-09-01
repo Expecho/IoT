@@ -10,7 +10,6 @@ var mqtt = require('mqtt');
 var ping = require('ping');
 
 // Define clients
-var azureIotCentralClient = AzureIotCentralClient.fromConnectionString(secrets.iotConn, Protocol);
 var mqttClient = mqtt.connect({
   host: 'farmer.cloudmqtt.com',
   port: 11245,
@@ -79,6 +78,7 @@ board.on("ready", function () {
           var jsonMessage = createJsonFromParsedData(parsedPacket);
           mqttClient.publish("sensor/p1", jsonMessage);
 
+          var azureIotCentralClient = AzureIotCentralClient.fromConnectionString(secrets.iotConn, Protocol);
           azureIotCentralClient.sendEvent(new Message(jsonMessage), function (err) {
             if (err) {
               console.log("Send failed: " + err);
