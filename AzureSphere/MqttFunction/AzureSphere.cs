@@ -1,3 +1,4 @@
+using System;
 using System.Text;
 using System.Threading.Tasks;
 using CaseOnline.Azure.WebJobs.Extensions.Mqtt;
@@ -6,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Azure.Devices.Client;
 using Microsoft.Extensions.Logging;
 
 namespace MqttFunction
@@ -28,12 +30,22 @@ namespace MqttFunction
                         MqttQualityOfServiceLevel.AtLeastOnce,
                         false));
 
-            foreach (var formData in formDatas.Keys)
-                outMessages.Add(
-                    new MqttMessage($"sensor/{formData.ToLowerInvariant()}",
-                        Encoding.UTF8.GetBytes($"{formDatas[formData]}"),
-                        MqttQualityOfServiceLevel.AtLeastOnce,
-                        true));
+            using (var deviceClient = DeviceClient.CreateFromConnectionString(Environment.GetEnvironmentVariable("IoTCentral_CS"), TransportType.Mqtt))
+            {
+                foreach (var formData in formDatas.Keys)
+                {
+                    outMessages.Add(
+                        new MqttMessage($"sensor/{formData.ToLowerInvariant()}",
+                            Encoding.UTF8.GetBytes($"{formDatas[formData]}"),
+                            MqttQualityOfServiceLevel.AtLeastOnce,
+                            true));
+
+                    var messageString = "{ \"" + formData.ToLowerInvariant() + "\": " + formDatas[formData] + " }";
+                    var message = new Message(Encoding.ASCII.GetBytes(messageString));
+                    
+                    await deviceClient.SendEventAsync(message);
+                }
+            }
 
             return new OkResult();
         }
