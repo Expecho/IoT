@@ -116,7 +116,7 @@ function createJsonFromParsedData(parsedPacket) {
       electricity_tariff1_delivered: parsedPacket.electricity.delivered.tariff1.reading,
       electricity_tariff2_delivered: parsedPacket.electricity.delivered.tariff2.reading,
       electricity_actual_delivered: parsedPacket.electricity.delivered.actual.reading,
-      electricity_actual_delta: parsedPacket.electricity.received.actual.reading - parsedPacket.electricity.delivered.actual.reading,
+      electricity_actual: parsedPacket.electricity.received.actual.reading > 0 ?  parsedPacket.electricity.received.actual.reading : parsedPacket.electricity.delivered.actual.reading,
       electricity_tariffIndicator: parsedPacket.electricity.tariffIndicator,
       gas_received: parsedPacket.gas.reading,
       gas_actual_received: gasActual
