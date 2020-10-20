@@ -1,5 +1,6 @@
 secrets.*
 .vs
+.vscode
 obj/
 bin/
 PublishProfiles/
