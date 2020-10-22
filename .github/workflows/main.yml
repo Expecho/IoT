@@ -1,4 +1,4 @@
-name: Deploy DotNet project to Azure function app with a Linux environment
+name: Deploy Azure Function
 
 on:
   push:
