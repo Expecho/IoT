@@ -9,6 +9,7 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Devices.Client;
 using Microsoft.Extensions.Logging;
+using Microsoft.Azure.WebJobs.Extensions.DurableTask;
 
 namespace MqttFunction
 {
@@ -18,9 +19,16 @@ namespace MqttFunction
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequest req,
             ILogger log,
+            [DurableClient] IDurableEntityClient entityClient,
             [Mqtt(typeof(MqttConfigFactory))] ICollector<IMqttMessage> outMessages)
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
+
+            if (req.QueryString.Value.Contains("delete", StringComparison.InvariantCultureIgnoreCase))
+            {
+                await entityClient.SignalEntityAsync<ICallerInfo>(new EntityId(nameof(CallerInfo), "Key"),  e => e.Delete());
+                return new AcceptedResult();
+            }
 
             var formDatas = await req.ReadFormAsync();
 
@@ -29,6 +37,8 @@ namespace MqttFunction
                         Encoding.UTF8.GetBytes("connected"),
                         MqttQualityOfServiceLevel.AtLeastOnce,
                         false));
+
+            await entityClient.SignalEntityAsync<ICallerInfo>(new EntityId(nameof(CallerInfo), "Key"), e => e.UpdateAsync(DateTime.Now));
 
             using (var deviceClient = DeviceClient.CreateFromConnectionString(Environment.GetEnvironmentVariable("IoTCentral_CS"), TransportType.Mqtt))
             {
@@ -42,7 +52,7 @@ namespace MqttFunction
 
                     var messageString = "{ \"" + formData.ToLowerInvariant() + "\": " + formDatas[formData] + " }";
                     var message = new Message(Encoding.ASCII.GetBytes(messageString));
-                    
+
                     await deviceClient.SendEventAsync(message);
                 }
             }
