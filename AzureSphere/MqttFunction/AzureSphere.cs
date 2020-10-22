@@ -9,6 +9,7 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Devices.Client;
 using Microsoft.Extensions.Logging;
+using Microsoft.Azure.WebJobs.Extensions.DurableTask;
 
 namespace MqttFunction
 {
@@ -18,6 +19,7 @@ namespace MqttFunction
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequest req,
             ILogger log,
+            [DurableClient] IDurableEntityClient entityClient,
             [Mqtt(typeof(MqttConfigFactory))] ICollector<IMqttMessage> outMessages)
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
@@ -29,6 +31,8 @@ namespace MqttFunction
                         Encoding.UTF8.GetBytes("connected"),
                         MqttQualityOfServiceLevel.AtLeastOnce,
                         false));
+
+            await entityClient.SignalEntityAsync<ICallerInfo>(new EntityId("Id", "Key"), e => e.Update(DateTime.Now));
 
             using (var deviceClient = DeviceClient.CreateFromConnectionString(Environment.GetEnvironmentVariable("IoTCentral_CS"), TransportType.Mqtt))
             {

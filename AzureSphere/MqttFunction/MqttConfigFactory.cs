@@ -24,14 +24,6 @@ namespace MqttFunction
                     .WithClientId(connectionString.ClientId)
                     .WithTcpServer(connectionString.Server, connectionString.Port)
                     .WithCredentials(connectionString.Username, connectionString.Password)
-                    .WithWillDelayInterval(30)
-                    .WithWillMessage(new MqttApplicationMessage
-                    {
-                        Topic = "azsphere/status",
-                        Payload = Encoding.UTF8.GetBytes("disconnected"),
-                        QualityOfServiceLevel = MqttQualityOfServiceLevel.AtLeastOnce,
-                        Retain = false
-                    })
                     .Build())
                 .Build();
 
