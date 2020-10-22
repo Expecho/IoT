@@ -24,6 +24,12 @@ namespace MqttFunction
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
 
+            if (req.QueryString.Value.Contains("delete", StringComparison.InvariantCultureIgnoreCase))
+            {
+                await entityClient.SignalEntityAsync<ICallerInfo>(new EntityId(nameof(CallerInfo), "Key"),  e => e.Delete());
+                return new AcceptedResult();
+            }
+
             var formDatas = await req.ReadFormAsync();
 
             outMessages.Add(
@@ -32,7 +38,7 @@ namespace MqttFunction
                         MqttQualityOfServiceLevel.AtLeastOnce,
                         false));
 
-            await entityClient.SignalEntityAsync<ICallerInfo>(new EntityId("Id", "Key"), e => e.Update(DateTime.Now));
+            await entityClient.SignalEntityAsync<ICallerInfo>(new EntityId(nameof(CallerInfo), "Key"), e => e.UpdateAsync(DateTime.Now));
 
             using (var deviceClient = DeviceClient.CreateFromConnectionString(Environment.GetEnvironmentVariable("IoTCentral_CS"), TransportType.Mqtt))
             {
@@ -46,7 +52,7 @@ namespace MqttFunction
 
                     var messageString = "{ \"" + formData.ToLowerInvariant() + "\": " + formDatas[formData] + " }";
                     var message = new Message(Encoding.ASCII.GetBytes(messageString));
-                    
+
                     await deviceClient.SendEventAsync(message);
                 }
             }

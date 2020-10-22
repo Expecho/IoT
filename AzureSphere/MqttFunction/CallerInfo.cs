@@ -12,26 +12,39 @@ namespace MqttFunction
 {
     public interface ICallerInfo
     {
-        DateTime LastValueReceived { get; set; }
-
-        void Update(DateTime timestamp);
+        Task UpdateAsync(DateTime timestamp);
+        Task CheckConnectedStateAsync();
+        void Delete();
     }
 
     public class CallerInfo : ICallerInfo
     {
         public DateTime LastValueReceived { get; set; } = DateTime.MinValue;
 
-        public void Update(DateTime timestamp)
+        public bool CheckConnectedStateStarted { get; set; }
+
+        public async Task UpdateAsync(DateTime timestamp)
         {
             LastValueReceived = timestamp;
+
+            if (!CheckConnectedStateStarted)
+            {
+                await CheckConnectedStateAsync();
+                CheckConnectedStateStarted = true;
+            }
+        }
+
+        public void Delete()
+        {
+            Entity.Current.DeleteState();
         }
 
         public async Task CheckConnectedStateAsync()
         {
-            if ((DateTime.Now - LastValueReceived).TotalMinutes >= 5)
+            if ((DateTime.Now - LastValueReceived).TotalMinutes >= 2)
                 await PublishDisconnectedMessageAsync();
-
-            Entity.Current.SignalEntity<ICallerInfo>(Entity.Current.EntityId, DateTime.Now.AddMinutes(5), async e => await CheckConnectedStateAsync());
+            
+            Entity.Current.SignalEntity<ICallerInfo>(Entity.Current.EntityId, DateTime.Now.AddMinutes(2), async e => await e.CheckConnectedStateAsync());
         }
 
         [FunctionName(nameof(CallerInfo))]
