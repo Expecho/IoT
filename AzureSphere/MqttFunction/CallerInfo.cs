@@ -56,7 +56,7 @@ namespace MqttFunction
             var connectionString = new MqttConnectionString(Environment.GetEnvironmentVariable("MqttConnection"), "CustomConfiguration");
 
             var factory = new MqttFactory();
-            using var mqttClient = factory.CreateMqttClient();
+            var mqttClient = factory.CreateMqttClient();
             var options = new MqttClientOptionsBuilder()
                                 .WithClientId(connectionString.ClientId)
                                 .WithTcpServer(connectionString.Server)
