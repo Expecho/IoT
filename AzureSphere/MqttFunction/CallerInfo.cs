@@ -2,6 +2,8 @@
 using System.Threading;
 using System.Threading.Tasks;
 using CaseOnline.Azure.WebJobs.Extensions.Mqtt.Bindings;
+using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.DurableTask;
 using MQTTnet;
@@ -19,6 +21,16 @@ namespace MqttFunction
 
     public class CallerInfo : ICallerInfo
     {
+        private readonly TelemetryClient telemetryClient;
+
+        public CallerInfo()
+        {
+            telemetryClient = new TelemetryClient(new TelemetryConfiguration
+            {
+                InstrumentationKey = Environment.GetEnvironmentVariable("APPINSIGHTS_INSTRUMENTATIONKEY")
+            });
+        }
+
         public DateTime LastValueReceived { get; set; } = DateTime.MinValue;
 
         public bool CheckConnectedStateStarted { get; set; }
@@ -37,13 +49,25 @@ namespace MqttFunction
         public void Delete()
         {
             Entity.Current.DeleteState();
+            telemetryClient.TrackEvent("StateDeleted");
         }
 
         public async Task CheckConnectedStateAsync()
         {
             if ((DateTime.Now - LastValueReceived).TotalMinutes >= 2)
-                await PublishDisconnectedMessageAsync();
-            
+            {
+                telemetryClient.TrackEvent("TimeoutDetected");
+
+                try
+                {
+                    await PublishDisconnectedMessageAsync();
+                }
+                catch (Exception ex)
+                {
+                    telemetryClient.TrackException(ex);
+                }
+            }
+
             Entity.Current.SignalEntity<ICallerInfo>(Entity.Current.EntityId, DateTime.Now.AddMinutes(2), async e => await e.CheckConnectedStateAsync());
         }
 
@@ -70,6 +94,7 @@ namespace MqttFunction
                             .Build();
 
             await mqttClient.PublishAsync(message, CancellationToken.None);
+            telemetryClient.TrackEvent("DisconnectedMessagePublished");
         }
     }
 }
