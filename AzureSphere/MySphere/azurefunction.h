@@ -25,6 +25,7 @@ static void Send(char* sensor, double value)
       char* postdata = (char*)malloc(50 * sizeof(char));
       sprintf(postdata, "%s=%.2f", sensor, value);
       curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postdata);
+      curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
 
       /* Perform the request, res will get the return code */
       res = curl_easy_perform(curl);
