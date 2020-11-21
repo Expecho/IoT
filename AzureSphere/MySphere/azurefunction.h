@@ -5,8 +5,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <applibs/log.h>
+#include <applibs/gpio.h>
 
 #include "secrets.h"
+
+static int userLedRedFd = -1;
+static int userLedGreenFd = -1;
+static int userLedBlueFd = -1;
+
+static bool blinkLeds = false;
 
 static void Send(char* sensor, double value)
 {
@@ -31,13 +38,30 @@ static void Send(char* sensor, double value)
       res = curl_easy_perform(curl);
       /* Check for errors */
       if (res != CURLE_OK)
-         Log_Debug("curl_easy_perform() failed: %s\n",
-            curl_easy_strerror(res));
+      {
+          GPIO_SetValue(userLedRedFd, GPIO_Value_Low);
+
+          Log_Debug("curl_easy_perform() failed: %s\n",
+              curl_easy_strerror(res));
+      }
+      else
+      {
+          GPIO_SetValue(userLedRedFd, GPIO_Value_High);
+      }
 
       /* always cleanup */
       curl_easy_cleanup(curl);
 
       free(postdata);
+
+      if (!blinkLeds)
+          return;
+
+      GPIO_SetValue(userLedGreenFd, GPIO_Value_Low);
+
+      sleep(1);
+
+      GPIO_SetValue(userLedGreenFd, GPIO_Value_High);
    }
 }
 #endif

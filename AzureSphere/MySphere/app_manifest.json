@@ -3,7 +3,7 @@
   "Name": "Expecho Sensor Reporter",
   "ComponentId": "67860c5c-378f-48c4-baf4-42a2d3311edb",
   "EntryPoint": "/bin/app",
-  "CmdArgs": [ "Avnet-Starter-Kit-reference-V1.0" ],
+  "CmdArgs": [ ],
   "Capabilities": {
     "AllowedConnections": [ "azuresphere-exp.azurewebsites.net" ],
     "AllowedTcpServerPorts": [],

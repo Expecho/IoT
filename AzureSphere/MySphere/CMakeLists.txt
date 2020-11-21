@@ -5,7 +5,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.8)
 PROJECT(AvnetStarterKitReferenceDesign C)
 
 # Create executable
-ADD_EXECUTABLE(${PROJECT_NAME} main.c epoll_timerfd_utilities.c parson.c azure_iot_utilities.c device_twin.c i2c.c lps22hh_reg.c lsm6dso_reg.c)
+ADD_EXECUTABLE(${PROJECT_NAME} main.c epoll_timerfd_utilities.c parson.c azure_iot_utilities.c  i2c.c lps22hh_reg.c lsm6dso_reg.c)
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${AZURE_SPHERE_API_SET_DIR}/usr/include/azureiot)
 TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PUBLIC AZURE_IOT_HUB_CONFIGURED)
 
