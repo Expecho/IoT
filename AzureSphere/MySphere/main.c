@@ -54,6 +54,8 @@ static int valueCount = 0;
 static int sampleBitCount = -1;
 static float sampleMaxVoltage = 2.5f;
 
+static bool ledOn = false;
+
 // Termination state
 volatile sig_atomic_t terminationRequired = false;
 
@@ -103,6 +105,31 @@ static void AdcPollingEventHandler(EventData* eventData)
 // event handler data structures. Only the event handler field needs to be populated.
 static EventData adcPollingEventData = { .eventHandler = &AdcPollingEventHandler };
 
+/// <summary>
+///     Check whether a given button has just been pressed.
+/// </summary>
+/// <param name="fd">The button file descriptor</param>
+/// <param name="oldState">Old state of the button (pressed or released)</param>
+/// <returns>true if pressed, false otherwise</returns>
+static bool IsButtonPressed(int fd, GPIO_Value_Type* oldState)
+{
+	bool isButtonPressed = false;
+	GPIO_Value_Type newState;
+	int result = GPIO_GetValue(fd, &newState);
+	if (result != 0) {
+		Log_Debug("ERROR: Could not read button GPIO: %s (%d).\n", strerror(errno), errno);
+		terminationRequired = true;
+		return;
+	}
+	else {
+		// Button is pressed if it is low and different than last known state.
+		isButtonPressed = (newState != *oldState) && (newState == GPIO_Value_Low);
+		*oldState = newState;
+	}
+
+	return isButtonPressed;
+}
+
 // <summary>
 ///     Handle button timer event: if the button is pressed, report the event to the IoT Hub.
 /// </summary>
@@ -113,17 +140,21 @@ static void ButtonTimerEventHandler(EventData* eventData)
 		return;
 	}
 
-	// Check for button A press
-	GPIO_Value_Type newButtonAState;
-	int result = GPIO_GetValue(buttonAGpioFd, &newButtonAState);
-	if (result != 0) {
-		Log_Debug("ERROR: Could not read button GPIO: %s (%d).\n", strerror(errno), errno);
-		terminationRequired = true;
-		return;
+	if (IsButtonPressed(buttonAGpioFd, &buttonAState)) {
+		blinkLeds = !blinkLeds;
 	}
 
-	if (newButtonAState == GPIO_Value_Low) {
-		blinkLeds != blinkLeds;
+	if (IsButtonPressed(buttonBGpioFd, &buttonBState)) {
+		ledOn = !ledOn;
+
+		if (ledOn)
+		{
+			GPIO_SetValue(userLedRedFd, GPIO_Value_Low);
+		}
+		else
+		{
+			GPIO_SetValue(userLedRedFd, GPIO_Value_High);
+		}
 	}
 }
 
