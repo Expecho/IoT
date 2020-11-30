@@ -3,6 +3,8 @@ name: Deploy Azure Function
 on:
   push:
     branches: [ master ]
+    paths:
+    - 'AzureSphere/MqttFunction/**'
 
 env:
   AZURE_FUNCTIONAPP_NAME: azuresphere-exp
