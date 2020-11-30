@@ -24,4 +24,4 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: HL imagepackage
-        path: ${{ github.workspace }}/HLOutput/AzureSphereBlink.imagepackage
+        path: ${{ github.workspace }}/HLOutput/AzureSphereBlinkb.imagepackage
