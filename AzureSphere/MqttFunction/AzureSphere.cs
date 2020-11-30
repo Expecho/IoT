@@ -22,8 +22,6 @@ namespace MqttFunction
             [DurableClient] IDurableEntityClient entityClient,
             [Mqtt(typeof(MqttConfigFactory))] ICollector<IMqttMessage> outMessages)
         {
-            log.LogInformation("C# HTTP trigger function processed a request.");
-
             if (req.QueryString.Value.Contains("delete", StringComparison.InvariantCultureIgnoreCase))
             {
                 await entityClient.SignalEntityAsync<ICallerInfo>(new EntityId(nameof(CallerInfo), "Key"),  e => e.Delete());
