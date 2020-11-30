@@ -1,4 +1,4 @@
-### Azure Sphere CLI commands
+### Azure Sphere CLI commands 
 
 To set the device in development mode: run `azsphere device enable-development`
 
