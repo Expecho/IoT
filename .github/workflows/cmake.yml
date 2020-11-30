@@ -1,8 +1,11 @@
 name: Build Azure Sphere Application
 
 on:
-  workflow_dispatch
-  
+  workflow_dispatch:
+  push:
+    branches: [ master ]
+    paths:
+    - 'AzureSphere/MySphere/**'
 
 
 jobs:
