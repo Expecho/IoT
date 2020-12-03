@@ -4,5 +4,5 @@ FROM dev AS build
 COPY AzureSphere/MySphere/ /src/
 WORKDIR /out
 RUN cmake -G "Ninja" -DCMAKE_TOOLCHAIN_FILE="/opt/azurespheresdk/CMakeFiles/AzureSphereToolchain.cmake" \
-    -DAZURE_SPHERE_TARGET_API_SET="latest-lts" -DCMAKE_BUILD_TYPE="Release" "/src"
+    -DAZURE_SPHERE_TARGET_API_SET="7" -DCMAKE_BUILD_TYPE="Release" "/src"
 ENTRYPOINT [ "ninja" ]
