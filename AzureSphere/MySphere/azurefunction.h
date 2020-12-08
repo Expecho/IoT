@@ -7,7 +7,7 @@
 #include <applibs/log.h>
 #include <applibs/gpio.h>
 
-#include "secrets.h"
+//#include "secrets.h"
 
 static int userLedRedFd = -1;
 static int userLedGreenFd = -1;
@@ -39,7 +39,7 @@ static void Send(char* sensor, double value)
 		/* First set the URL that is about to receive our POST. This URL can
 		   just as well be a https:// URL if that is what should receive the
 		   data. */
-		curl_easy_setopt(curl, CURLOPT_URL, MY_CONNECTION_STRING);
+		curl_easy_setopt(curl, CURLOPT_URL, "MY_CONNECTION_STRING");
 
 		/* Now specify the POST data */
 		char* postdata = (char*)malloc(50 * sizeof(char));
