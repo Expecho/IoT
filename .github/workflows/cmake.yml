@@ -25,4 +25,4 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: HL imagepackage
-        path: ${{ github.workspace }}/HLOutput/AzureSphereBlinkb.imagepackage
+        path: ${{ github.workspace }}/HLOutput/AvnetStarterKitReferenceDesign.imagepackage
