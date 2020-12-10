@@ -10,7 +10,7 @@
 #include <applibs/log.h>
 #include "azure_iot_utilities.h"
 #include "build_options.h"
-#include "secrets.h"
+//#include "secrets.h"
 
 
 // Refer to https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-device-sdk-c-intro for more
@@ -23,9 +23,9 @@
 // see information on iothub-explorer at http://aka.ms/iothubgetstartedVSCS
 //
 
-#include "secrets.h"
+//#include "secrets.h"
 
-static const char connectionString[] = MY_CONNECTION_STRING;
+static const char connectionString[] = "MY_CONNECTION_STRING";
 
 /// <summary>
 ///     Maximum amount of time to attempt reconnection when the connection to the IoT Hub drops.
