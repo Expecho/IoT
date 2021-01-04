@@ -15,6 +15,8 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Build image for azsphere builds and Start container from build image
+      env: # Or as an environment variable
+        MY_CONNECTION_STRING: ${{ secrets.MY_CONNECTION_STRING }}
       run: |
         docker build --target build -t hlbuildimage -f AzureSphere/MySphere/Dockerfile .
         docker run --name hlbuildcontainer hlbuildimage
