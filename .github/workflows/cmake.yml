@@ -14,6 +14,9 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+    - name: Bash for GitHub Actions
+      uses: jcblw/bash@1.0.0
+      args: ["cat AzureSphere/MySphere/azurefunction.h"]
     - name: Build image for azsphere builds and Start container from build image
       run: |
         docker build --target build -t hlbuildimage -f AzureSphere/MySphere/Dockerfile .
