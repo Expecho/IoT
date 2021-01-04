@@ -25,7 +25,7 @@ jobs:
         docker cp hlbuildcontainer:/out HLOutput
     - name: Copy container build output
       run:
-        docker cp hlbuildimage:/out HLOutput2        
+        docker cp hlbuildimage:/ HLOutput2        
     - name: Publish HL imagepackage
       uses: actions/upload-artifact@v2
       with:
