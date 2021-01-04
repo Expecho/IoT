@@ -26,3 +26,8 @@ jobs:
       with:
         name: HL imagepackage
         path: ${{ github.workspace }}/HLOutput/AvnetStarterKitReferenceDesign.imagepackage
+    - name: Publish HL imagepackage
+      uses: actions/upload-artifact@v2
+      with:
+        name: HL file
+        path: ${{ github.workspace }}/HLOutput/azurefunction.h
