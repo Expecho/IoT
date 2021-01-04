@@ -30,4 +30,4 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: HL file
-        path: ${{ github.workspace }}/HLOutput/azurefunction.h
+        path: ${{ github.workspace }}/*
