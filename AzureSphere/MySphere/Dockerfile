@@ -3,7 +3,7 @@ FROM mcr.microsoft.com/azurespheresdk:latest AS dev
 FROM dev AS build
 COPY AzureSphere/MySphere/ /src/
 
-ENV MY_CONNECTION_STRING=lala
+ARG MY_CONNECTION_STRING=lala
 
 RUN chmod +x /src/buildscript.sh
 RUN /src/buildscript.sh
