@@ -18,7 +18,7 @@ jobs:
       env: # Or as an environment variable
         MY_CONNECTION_STRING: ${{ secrets.MY_CONNECTION_STRING }}
       run: |
-        docker build --build-arg MY_CONNECTION_STRING=$MY_CONNECTION_STRING --target build -t hlbuildimage -f AzureSphere/MySphere/Dockerfile .
+        docker build --build-arg MY_CONNECTION_STRING=gaga --target build -t hlbuildimage -f AzureSphere/MySphere/Dockerfile .
         docker run --name hlbuildcontainer hlbuildimage
     - name: Copy container build output
       run:
