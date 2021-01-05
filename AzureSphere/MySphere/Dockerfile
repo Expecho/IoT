@@ -5,6 +5,8 @@ COPY AzureSphere/MySphere/ /src/
 
 ARG MY_CONNECTION_STRING=lala
 
+ENV MY_CONNECTION_STRING_ENV=$MY_CONNECTION_STRING
+
 RUN chmod +x /src/buildscript.sh
 RUN /src/buildscript.sh
 
