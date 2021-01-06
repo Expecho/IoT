@@ -3,7 +3,7 @@ FROM mcr.microsoft.com/azurespheresdk:latest AS dev
 FROM dev AS build
 COPY AzureSphere/MySphere/ /src/
 
-ARG MY_CONNECTION_STRING=dockerfile
+ARG MY_CONNECTION_STRING
 
 ENV MY_CONNECTION_STRING_ENV=$MY_CONNECTION_STRING
 
