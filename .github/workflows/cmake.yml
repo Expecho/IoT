@@ -23,16 +23,8 @@ jobs:
     - name: Copy container build output
       run:
         docker cp hlbuildcontainer:/out HLOutput
-    - name: Copy container build output
-      run:
-        docker cp hlbuildcontainer:/src HLOutput2        
-    - name: Publish HL imagepackage
+    - name: Publish imagepackage
       uses: actions/upload-artifact@v2
       with:
         name: HL imagepackage
         path: ${{ github.workspace }}/HLOutput/AvnetStarterKitReferenceDesign.imagepackage
-    - name: Publish HL imagepackage
-      uses: actions/upload-artifact@v2
-      with:
-        name: HL file
-        path: ${{ github.workspace }}/HLOutput2/*
