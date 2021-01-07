@@ -7,8 +7,6 @@
 #include <applibs/log.h>
 #include <applibs/gpio.h>
 
-//#include "secrets.h"
-
 static int userLedRedFd = -1;
 static int userLedGreenFd = -1;
 static int userLedBlueFd = -1;
