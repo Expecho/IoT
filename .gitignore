@@ -9,3 +9,5 @@ PublishProfiles/
 /AzureSphere/MySphere/out
 /AzureSphere/.vs/MySphere/v15
 /AzureSphere/MySphere/MySphere.vcxproj.user
+
+/IntelGalileo/node_modules/
