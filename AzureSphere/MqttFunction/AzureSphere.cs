@@ -23,7 +23,7 @@ namespace MqttFunction
         {
             if (req.QueryString.Value.Contains("delete", StringComparison.InvariantCultureIgnoreCase))
             {
-                await entityClient.SignalEntityAsync<ICallerInfo>(new EntityId(nameof(CallerInfo), "Key"), e => e.Delete());
+                await entityClient.SignalEntityAsync<ICallerInfo>(new EntityId(nameof(CallerInfo), "sphere01"), e => e.Delete());
                 return new AcceptedResult();
             }
 
@@ -35,7 +35,7 @@ namespace MqttFunction
                         MqttQualityOfServiceLevel.AtLeastOnce,
                         false));
 
-            await entityClient.SignalEntityAsync<ICallerInfo>(new EntityId(nameof(CallerInfo), "Key"), e => e.UpdateLastMessageReceivedTimestampAsync(DateTime.Now));
+            await entityClient.SignalEntityAsync<ICallerInfo>(new EntityId(nameof(CallerInfo), "sphere01"), e => e.UpdateLastMessageReceivedTimestampAsync(DateTime.Now));
             
             foreach (var formData in formDatas.Keys)
             {
