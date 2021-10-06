@@ -13,5 +13,5 @@ RUN /src/buildscript.sh
 WORKDIR /out
 
 RUN cmake -G "Ninja" -DCMAKE_TOOLCHAIN_FILE="/opt/azurespheresdk/CMakeFiles/AzureSphereToolchain.cmake" \
-    -DAZURE_SPHERE_TARGET_API_SET="7" -DCMAKE_BUILD_TYPE="Release" "/src"
+    -DAZURE_SPHERE_TARGET_API_SET="10" -DCMAKE_BUILD_TYPE="Release" "/src"
 ENTRYPOINT [ "ninja" ]
