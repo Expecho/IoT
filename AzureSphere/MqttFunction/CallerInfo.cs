@@ -3,45 +3,43 @@ using System.Threading;
 using System.Threading.Tasks;
 using CaseOnline.Azure.WebJobs.Extensions.Mqtt.Bindings;
 using Microsoft.ApplicationInsights;
-using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.DurableTask;
 using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Client.Options;
+using Newtonsoft.Json;
 
 namespace MqttFunction
 {
     public interface ICallerInfo
     {
-        Task UpdateAsync(DateTime timestamp);
-        Task CheckConnectedStateAsync();
+        Task UpdateLastMessageReceivedTimestampAsync(DateTime timestamp);
+        Task SendDisconnectedMqttMessageWhenThresholdReachedOrScheduleCheck();
         void Delete();
     }
 
     public class CallerInfo : ICallerInfo
     {
+        [JsonIgnore]
         private readonly TelemetryClient telemetryClient;
 
-        public CallerInfo()
+        public CallerInfo(TelemetryClient telemetryClient)
         {
-            telemetryClient = new TelemetryClient(new TelemetryConfiguration
-            {
-                InstrumentationKey = Environment.GetEnvironmentVariable("APPINSIGHTS_INSTRUMENTATIONKEY")
-            });
+            this.telemetryClient = telemetryClient;
         }
 
         public DateTime LastValueReceived { get; set; } = DateTime.MinValue;
 
         public bool CheckConnectedStateStarted { get; set; }
 
-        public async Task UpdateAsync(DateTime timestamp)
+        public async Task UpdateLastMessageReceivedTimestampAsync(DateTime timestamp)
         {
             LastValueReceived = timestamp;
 
             if (!CheckConnectedStateStarted)
             {
-                await CheckConnectedStateAsync();
+                await SendDisconnectedMqttMessageWhenThresholdReachedOrScheduleCheck();
                 CheckConnectedStateStarted = true;
             }
         }
@@ -52,7 +50,7 @@ namespace MqttFunction
             telemetryClient.TrackEvent("StateDeleted");
         }
 
-        public async Task CheckConnectedStateAsync()
+        public async Task SendDisconnectedMqttMessageWhenThresholdReachedOrScheduleCheck()
         {
             if ((DateTime.Now - LastValueReceived).TotalMinutes >= 2)
             {
@@ -68,7 +66,8 @@ namespace MqttFunction
                 }
             }
 
-            Entity.Current.SignalEntity<ICallerInfo>(Entity.Current.EntityId, DateTime.Now.AddMinutes(2), async e => await e.CheckConnectedStateAsync());
+            Entity.Current.SignalEntity<ICallerInfo>(Entity.Current.EntityId, DateTime.Now.AddMinutes(2), async e => await e.SendDisconnectedMqttMessageWhenThresholdReachedOrScheduleCheck());
+            telemetryClient.TrackEvent("TimeoutDetectionScheduled");
         }
 
         [FunctionName(nameof(CallerInfo))]
