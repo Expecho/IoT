@@ -31,11 +31,20 @@ namespace MqttFunction
 
         public DateTime LastValueReceived { get; set; } = DateTime.MinValue;
 
+        public bool CheckConnectedStateStarted { get; set; }
+
         public async Task UpdateLastMessageReceivedTimestampAsync(DateTime timestamp)
         {
             LastValueReceived = timestamp;
 
-            await SendDisconnectedMqttMessageWhenThresholdReachedOrScheduleCheck();
+            if (!CheckConnectedStateStarted)
+            {
+                await SendDisconnectedMqttMessageWhenThresholdReachedOrScheduleCheck();
+                CheckConnectedStateStarted = true;
+            }
+
+            if ((DateTime.Now - LastValueReceived).TotalMinutes >= 15)
+                CheckConnectedStateStarted = false;
         }
 
         public void Delete()
