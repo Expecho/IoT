@@ -8,24 +8,7 @@
 #include <applibs/gpio.h>
 #include "secrets.h"
 
-static int userLedRedFd = -1;
-static int userLedGreenFd = -1;
-static int userLedBlueFd = -1;
-
-static bool blinkLeds = false;
-
-static void delay(int number_of_seconds)
-{
-	// Converting time into milli_seconds 
-	int milli_seconds = 1000 * number_of_seconds;
-
-	// Storing start time 
-	clock_t start_time = clock();
-
-	// looping till required time is not achieved 
-	while (clock() < start_time + milli_seconds)
-		;
-}
+void ExtendWatchdogExpiry(void);
 
 static void Send(char* sensor, double value)
 {
@@ -51,29 +34,18 @@ static void Send(char* sensor, double value)
 		/* Check for errors */
 		if (res != CURLE_OK)
 		{
-			GPIO_SetValue(userLedRedFd, GPIO_Value_Low);
-
 			Log_Debug("curl_easy_perform() failed: %s\n",
 				curl_easy_strerror(res));
 		}
 		else
 		{
-			GPIO_SetValue(userLedRedFd, GPIO_Value_High);
+			ExtendWatchdogExpiry();
 		}
 
 		/* always cleanup */
 		curl_easy_cleanup(curl);
 
 		free(postdata);
-
-		if (!blinkLeds)
-			return;
-
-		GPIO_SetValue(userLedBlueFd, GPIO_Value_Low);
-
-		delay(1);
-
-		GPIO_SetValue(userLedBlueFd, GPIO_Value_High);
 	}
 }
 #endif

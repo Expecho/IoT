@@ -33,20 +33,13 @@ static void TerminationHandler(int signalNumber);
 static int InitPeripheralsAndHandlers(void);
 static void ClosePeripheralsAndHandlers(void);
 
-int epollFd = -1;
-static int buttonPollTimerFd = -1;
-static int buttonAGpioFd = -1;
-static int buttonBGpioFd = -1;
+const struct itimerspec watchdogInterval = { { 120, 0 },{ 120, 0 } };
+timer_t watchdogTimer;
 
-int wifiLedFd = -1;
+int epollFd = -1;
+
 static int adcControllerFd = -1;
 static int adcPollTimerFd = -1;
-
-static GPIO_Value_Type buttonAState = GPIO_Value_High;
-static GPIO_Value_Type buttonBState = GPIO_Value_High;
-static GPIO_Value_Type ledRedState = GPIO_Value_High;
-static GPIO_Value_Type ledGreenState = GPIO_Value_High;
-static GPIO_Value_Type ledBlueState = GPIO_Value_High;
 
 static double summedValue = 0;
 static int valueCount = 0;
@@ -54,10 +47,26 @@ static int valueCount = 0;
 static int sampleBitCount = -1;
 static float sampleMaxVoltage = 2.5f;
 
-static bool ledOn = false;
-
 // Termination state
 volatile sig_atomic_t terminationRequired = false;
+
+void SetupWatchdog(void)
+{
+	struct sigevent alarmEvent;
+	alarmEvent.sigev_notify = SIGEV_SIGNAL;
+	alarmEvent.sigev_signo = SIGALRM;
+	alarmEvent.sigev_value.sival_ptr = &watchdogTimer;
+
+	int result = timer_create(CLOCK_MONOTONIC, &alarmEvent, &watchdogTimer);
+	result = timer_settime(watchdogTimer, 0, &watchdogInterval, NULL);
+}
+
+void ExtendWatchdogExpiry(void)
+{
+	//check that application is operating normally
+	//if so, reset the watchdog
+	timer_settime(watchdogTimer, 0, &watchdogInterval, NULL);
+}
 
 /// <summary>
 ///     Signal handler for termination requests. This handler must be async-signal-safe.
@@ -104,61 +113,6 @@ static void AdcPollingEventHandler(EventData* eventData)
 
 // event handler data structures. Only the event handler field needs to be populated.
 static EventData adcPollingEventData = { .eventHandler = &AdcPollingEventHandler };
-
-/// <summary>
-///     Check whether a given button has just been pressed.
-/// </summary>
-/// <param name="fd">The button file descriptor</param>
-/// <param name="oldState">Old state of the button (pressed or released)</param>
-/// <returns>true if pressed, false otherwise</returns>
-static bool IsButtonPressed(int fd, GPIO_Value_Type* oldState)
-{
-	bool isButtonPressed = false;
-	GPIO_Value_Type newState;
-	int result = GPIO_GetValue(fd, &newState);
-	if (result != 0) {
-		Log_Debug("ERROR: Could not read button GPIO: %s (%d).\n", strerror(errno), errno);
-		terminationRequired = true;
-		return;
-	}
-	else {
-		// Button is pressed if it is low and different than last known state.
-		isButtonPressed = (newState != *oldState) && (newState == GPIO_Value_Low);
-		*oldState = newState;
-	}
-
-	return isButtonPressed;
-}
-
-// <summary>
-///     Handle button timer event: if the button is pressed, report the event to the IoT Hub.
-/// </summary>
-static void ButtonTimerEventHandler(EventData* eventData)
-{
-	if (ConsumeTimerFdEvent(buttonPollTimerFd) != 0) {
-		terminationRequired = true;
-		return;
-	}
-
-	if (IsButtonPressed(buttonAGpioFd, &buttonAState)) {
-		blinkLeds = !blinkLeds;
-	}
-
-	if (IsButtonPressed(buttonBGpioFd, &buttonBState)) {
-		ledOn = !ledOn;
-
-		if (ledOn)
-		{
-			GPIO_SetValue(userLedRedFd, GPIO_Value_Low);
-		}
-		else
-		{
-			GPIO_SetValue(userLedRedFd, GPIO_Value_High);
-		}
-	}
-}
-
-static EventData buttonEventData = { .eventHandler = &ButtonTimerEventHandler };
 
 /// <summary>
 ///     Set up SIGTERM termination handler, initialize peripherals, and set up event handlers.
@@ -211,53 +165,6 @@ static int InitPeripheralsAndHandlers(void)
 		return -1;
 	}
 
-	// Open button A GPIO as input
-	Log_Debug("Opening Button A as input.\n");
-	buttonAGpioFd = GPIO_OpenAsInput(AVNET_MT3620_SK_USER_BUTTON_A);
-	if (buttonAGpioFd < 0) {
-		Log_Debug("ERROR: Could not open button A GPIO: %s (%d).\n", strerror(errno), errno);
-		return -1;
-	}
-	// Open button B GPIO as input
-	Log_Debug("Opening Button B as input.\n");
-	buttonBGpioFd = GPIO_OpenAsInput(AVNET_MT3620_SK_USER_BUTTON_B);
-	if (buttonBGpioFd < 0) {
-		Log_Debug("ERROR: Could not open button B GPIO: %s (%d).\n", strerror(errno), errno);
-		return -1;
-	}
-
-	// Set up a timer to poll the buttons
-	struct timespec buttonPressCheckPeriod = { 0, 1000000 };
-	buttonPollTimerFd =
-		CreateTimerFdAndAddToEpoll(epollFd, &buttonPressCheckPeriod, &buttonEventData, EPOLLIN);
-	if (buttonPollTimerFd < 0) {
-		return -1;
-	}
-
-	Log_Debug("Opening AVNET_MT3620_SK_USER_LED_RED.\n");
-	userLedRedFd =
-		GPIO_OpenAsOutput(AVNET_MT3620_SK_USER_LED_RED, GPIO_OutputMode_PushPull, GPIO_Value_High);
-	if (userLedRedFd < 0) {
-		Log_Debug("ERROR: Could not open LED GPIO: %s (%d).\n", strerror(errno), errno);
-		return -1;
-	}
-
-	Log_Debug("Opening AVNET_MT3620_SK_USER_LED_GREEN.\n");
-	userLedGreenFd =
-		GPIO_OpenAsOutput(AVNET_MT3620_SK_USER_LED_GREEN, GPIO_OutputMode_PushPull, GPIO_Value_High);
-	if (userLedGreenFd < 0) {
-		Log_Debug("ERROR: Could not open LED GPIO: %s (%d).\n", strerror(errno), errno);
-		return -1;
-	}
-
-	Log_Debug("Opening AVNET_MT3620_SK_USER_LED_BLUE.\n");
-	userLedBlueFd =
-		GPIO_OpenAsOutput(AVNET_MT3620_SK_USER_LED_BLUE, GPIO_OutputMode_PushPull, GPIO_Value_High);
-	if (userLedBlueFd < 0) {
-		Log_Debug("ERROR: Could not open LED GPIO: %s (%d).\n", strerror(errno), errno);
-		return -1;
-	}
-
 	return 0;
 }
 
@@ -272,10 +179,6 @@ static void ClosePeripheralsAndHandlers(void)
 	CloseFdAndPrintError(epollFd, "Epoll");
 	CloseFdAndPrintError(adcPollTimerFd, "adcPoll");
 	CloseFdAndPrintError(adcControllerFd, "adc");
-	CloseFdAndPrintError(userLedBlueFd, "BlinkingLedGpio");
-	CloseFdAndPrintError(userLedGreenFd, "BlinkingLedGpio");
-	CloseFdAndPrintError(userLedRedFd, "BlinkingLedGpio");
-	CloseFdAndPrintError(buttonPollTimerFd, "ButtonPollTimer");
 }
 
 /// <summary>
@@ -293,6 +196,9 @@ int main(int argc, char* argv[])
 	memset(ssid, 0, 128);
 
 	Log_Debug("Application starting.\n");
+
+	SetupWatchdog();
+
 	if (InitPeripheralsAndHandlers() != 0) {
 		terminationRequired = true;
 	}
