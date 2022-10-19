@@ -1,7 +1,14 @@
-#include <ESP8266WiFi.h>
+#include "SPI.h"
+#include "driver/rtc_io.h"
+#include "esp_camera.h"
+#include "esp_timer.h"
+#include "img_converters.h"
+#include "Arduino.h"
+#include "fb_gfx.h"
+#include "soc/soc.h" //disable brownout problems
+#include "soc/rtc_cntl_reg.h"  //disable brownout problems
+#include "esp_http_server.h"
 #include <PubSubClient.h>
-#include <ESP8266mDNS.h>
-#include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 #include "secrets.h"
 
@@ -12,14 +19,16 @@
 #define mqtt_port 11245
 #define mqtt_user mqtt_user_secret
 #define mqtt_password mqtt_password_secret
-
 #define motion_topic "sensor/motion"
 
-const int STATUS_LED = 2;
-const int MOTION_DETECTOR = 12;
+#define ESP_INTR_FLAG_DEFAULT 0
 
-const int LED_ON = LOW;
-const int LED_OFF = HIGH;
+const int STATUS_LED = 4;
+const int LED_OFF = LOW;
+const int LED_ON = HIGH;
+const int MOTION_DETECTOR = 13;
+
+bool motionDetected = false;
 
 WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient);
@@ -27,6 +36,9 @@ PubSubClient mqttClient(wifiClient);
 void setup() {
   Serial.begin(115200);
   Serial.println("Setting things up.");
+
+  //enableInterrupt();
+  //delay(1000);
 
   pinMode(STATUS_LED, OUTPUT);
 
@@ -36,13 +48,10 @@ void setup() {
 
   mqttClient.setServer(mqtt_server, mqtt_port);
 
-  pinMode(STATUS_LED, OUTPUT);
-  pinMode(MOTION_DETECTOR, INPUT);
+  initCameraServer();
 
   Serial.println("Ready to serve!");
 }
-
-long lastState = LOW;
 
 void loop() {
   if (WiFi.status() != WL_CONNECTED) {
@@ -58,22 +67,19 @@ void loop() {
   }
   mqttClient.loop();
 
-  long state = digitalRead(MOTION_DETECTOR);
-
-  if (state == lastState)
-  {
-    return;
-  }
-
-  if (state == HIGH)
-  {
+  if (motionDetected) {
     mqttClient.publish("motion/status", "connected", false);
     mqttClient.publish(motion_topic, "ON", true);
+    char rssi[8];
+    itoa(WiFi.RSSI(), rssi, 10);
+    mqttClient.publish("motion/wifisignal", rssi, false);
+
+    //digitalWrite(STATUS_LED, LED_ON);
+
+    delay(1);
+
+    //digitalWrite(STATUS_LED, LED_OFF);
+
+    motionDetected = false;
   }
-
-  digitalWrite(STATUS_LED, LED_OFF);
-
-  lastState = state;
-
-  delay(1000);
 }

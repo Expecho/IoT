@@ -1,6 +1,6 @@
 void configureOTA()
 {
-  ArduinoOTA.setHostname("IoT NodeMCU");
+  ArduinoOTA.setHostname("IoT Esp32-Cam");
 
   ArduinoOTA.onStart([]() {
     String type;

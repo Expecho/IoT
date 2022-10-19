@@ -3,7 +3,7 @@ void connectWifi() {
   Serial.print("Connecting to ");
   Serial.println(wifi_ssid);
 
-  WiFi.setHostname("IoT NodeMCU");
+  WiFi.setHostname("IoT ESP32-Cam");
   WiFi.begin(wifi_ssid, wifi_password);
 
   while (WiFi.status() != WL_CONNECTED) {

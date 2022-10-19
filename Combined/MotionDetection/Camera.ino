@@ -84,7 +84,6 @@ static esp_err_t stream_handler(httpd_req_t *req) {
     if (res != ESP_OK) {
       break;
     }
-    //Serial.printf("MJPG: %uB\n",(uint32_t)(_jpg_buf_len));
   }
   return res;
 }
@@ -128,10 +127,8 @@ void initCameraServer() {
   config.pin_reset = RESET_GPIO_NUM;
   config.xclk_freq_hz = 20000000;
   config.pixel_format = PIXFORMAT_JPEG;
-
-  config.vertical_flip = false;
   config.frame_size = FRAMESIZE_VGA;
-  config.jpeg_quality = 12;
+  config.jpeg_quality = 20;
   config.fb_count = 1;
 
   // Camera init
@@ -141,5 +138,9 @@ void initCameraServer() {
     return;
   }
 
+  sensor_t * s = esp_camera_sensor_get();
+  s->set_vflip(s, 1);
+  s->set_hmirror(s, 1);
+  
   startCameraServer();
 }
