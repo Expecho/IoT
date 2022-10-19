@@ -28,6 +28,11 @@ namespace MqttFunction
             }
 
             var formDatas = await req.ReadFormAsync();
+            if(formDatas == null)
+            {
+                log.LogWarning("Invalid request, no form data found.");
+                return new BadRequestResult();
+            }
 
             outMessages.Add(
                     new MqttMessage("azsphere/status",

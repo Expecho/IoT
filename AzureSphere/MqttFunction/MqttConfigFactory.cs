@@ -1,14 +1,10 @@
 using System;
-using System.Text;
 using CaseOnline.Azure.WebJobs.Extensions.Mqtt.Bindings;
 using CaseOnline.Azure.WebJobs.Extensions.Mqtt.Config;
-using CaseOnline.Azure.WebJobs.Extensions.Mqtt.Messaging;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Logging;
-using MQTTnet;
 using MQTTnet.Client.Options;
 using MQTTnet.Extensions.ManagedClient;
-using MqttQualityOfServiceLevel = MQTTnet.Protocol.MqttQualityOfServiceLevel;
 
 namespace MqttFunction
 {
