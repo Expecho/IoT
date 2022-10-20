@@ -10,7 +10,7 @@ on:
 env:
   AZURE_FUNCTIONAPP_NAME: azuresphere-exp
   AZURE_FUNCTIONAPP_PACKAGE_PATH: 'AzureSphere/MqttFunction'
-  DOTNET_VERSION: '6'
+  DOTNET_VERSION: '6.0.x'
 
 jobs:
   build-and-deploy:
