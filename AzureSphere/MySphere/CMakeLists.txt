@@ -5,7 +5,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.8)
 PROJECT(AvnetStarterKitReferenceDesign C)
 
 azsphere_configure_tools(TOOLS_REVISION "21.10")
-azsphere_configure_api(TARGET_API_SET "11")
+azsphere_configure_api(TARGET_API_SET "15")
 
 # Create executable
 ADD_EXECUTABLE(${PROJECT_NAME} main.c epoll_timerfd_utilities.c parson.c   i2c.c lps22hh_reg.c lsm6dso_reg.c)
