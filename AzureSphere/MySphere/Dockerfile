@@ -3,10 +3,10 @@ FROM mcr.microsoft.com/azurespheresdk:latest AS dev
 FROM dev AS build
 COPY AzureSphere/MySphere/ /src/
 
-ARG MY_CONNECTION_STRING
+ARG FUNCTION_CONNECTION_STRING
 
-RUN echo '#define MY_CONNECTION_STRING "'$MY_CONNECTION_STRING'"'
-RUN echo '#define MY_CONNECTION_STRING "'$MY_CONNECTION_STRING'"' > /src/secrets.h
+RUN echo '#define MY_CONNECTION_STRING "'${FUNCTION_CONNECTION_STRING}'"'
+RUN echo '#define MY_CONNECTION_STRING "'${FUNCTION_CONNECTION_STRING}'"' > /src/secrets.h
 
 RUN chmod +x /src/buildscript.sh
 RUN /src/buildscript.sh
