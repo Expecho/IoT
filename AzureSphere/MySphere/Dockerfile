@@ -7,6 +7,7 @@ ARG FUNCTION_CONNECTION_STRING
 
 RUN echo '#define MY_CONNECTION_STRING "'${FUNCTION_CONNECTION_STRING}'"'
 RUN echo '#define MY_CONNECTION_STRING "'${FUNCTION_CONNECTION_STRING}'"' > /src/secrets.h
+RUN chmod +r /src/secrets.h
 
 RUN cat /src/secrets.h
 
