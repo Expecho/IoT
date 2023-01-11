@@ -7,7 +7,7 @@ ARG MY_CONNECTION_STRING
 
 ENV MY_CONNECTION_STRING_ENV=$MY_CONNECTION_STRING
 
-RUN echo '#define MY_CONNECTION_STRING "'$MY_CONNECTION_STRING_ENV'"' > /src/secrets.h
+RUN echo '#define MY_CONNECTION_STRING "'$MY_CONNECTION_STRING'"' > /src/secrets.h
 
 RUN chmod +x /src/buildscript.sh
 RUN /src/buildscript.sh
