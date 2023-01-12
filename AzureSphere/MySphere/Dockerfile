@@ -1,15 +1,15 @@
 FROM mcr.microsoft.com/azurespheresdk:latest AS dev
 
-FROM dev AS build
-COPY AzureSphere/MySphere/ /src/
-
 ARG FUNCTION_CONNECTION_STRING
 
 RUN echo '#define MY_CONNECTION_STRING "'${FUNCTION_CONNECTION_STRING}'"'
-RUN echo '#define MY_CONNECTION_STRING "'${FUNCTION_CONNECTION_STRING}'"' > /src/secrets.h
-RUN chmod +r /src/secrets.h
+RUN echo '#define MY_CONNECTION_STRING "'${FUNCTION_CONNECTION_STRING}'"' > AzureSphere/MySphere/secrets.h
+RUN chmod +r AzureSphere/MySphere/secrets.h
 
-RUN cat /src/secrets.h
+RUN cat AzureSphere/MySphere/secrets.h
+
+FROM dev AS build
+COPY AzureSphere/MySphere/ /src/
 
 RUN chmod +x /src/buildscript.sh
 RUN /src/buildscript.sh
