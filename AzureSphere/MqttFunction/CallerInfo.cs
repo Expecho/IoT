@@ -1,102 +1,126 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-using CaseOnline.Azure.WebJobs.Extensions.Mqtt.Bindings;
-using Microsoft.ApplicationInsights;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.DurableTask;
-using MQTTnet;
-using MQTTnet.Client;
-using MQTTnet.Client.Options;
-using Newtonsoft.Json;
+﻿//using Microsoft.ApplicationInsights;
+//using Microsoft.Azure.Functions.Worker;
+//using Microsoft.DurableTask.Entities;
+//using Newtonsoft.Json;
 
-namespace MqttFunction
-{
-    public interface ICallerInfo
-    {
-        Task UpdateLastMessageReceivedTimestampAsync(DateTime timestamp);
-        Task SendDisconnectedMqttMessageWhenThresholdReachedOrScheduleCheck();
-        void Delete();
-    }
+//namespace MqttFunction
+//{
+//    public static class CallerInfoContainer
+//    {
+//        [Function(nameof(CallerInfo))]
+//        public static Task DispatchAsync([EntityTrigger] TaskEntityDispatcher dispatcher)
+//        {
+//            return dispatcher.DispatchAsync(operation =>
+//            {
+//                if (operation.State.GetState(typeof(DateTime)) is null)
+//                {
+//                    operation.State.SetState(DateTime.MinValue);
+//                }
 
-    public class CallerInfo : ICallerInfo
-    {
-        [JsonIgnore]
-        private readonly TelemetryClient telemetryClient;
+//                switch (operation.Name.ToLowerInvariant())
+//                {
+//                    case "add":
+//                        int state = operation.State.GetState<int>();
+//                        state += operation.GetInput<int>();
+//                        operation.State.SetState(state);
+//                        return new(state);
+//                    case "get":
+//                        return new(operation.State.GetState<DateTime>());
+//                    case "delete":
+//                        operation.State.SetState(null);
+//                        break;
+//                }
 
-        public CallerInfo(TelemetryClient telemetryClient)
-        {
-            this.telemetryClient = telemetryClient;
-        }
+//                return default;
+//            });
+//        }
+//    }
 
-        public DateTime LastValueReceived { get; set; } = DateTime.MinValue;
+//    public class CallerInfo : ITaskEntity
+//    {
+//        [JsonIgnore]
+//        private readonly TelemetryClient telemetryClient;
 
-        public bool CheckConnectedStateStarted { get; set; }
+//        public CallerInfo(TelemetryClient telemetryClient)
+//        {
+//            this.telemetryClient = telemetryClient;
+//        }
 
-        public async Task UpdateLastMessageReceivedTimestampAsync(DateTime timestamp)
-        {
-            LastValueReceived = timestamp;
+//        public DateTime LastValueReceived { get; set; } = DateTime.MinValue;
 
-            if (!CheckConnectedStateStarted)
-            {
-                await SendDisconnectedMqttMessageWhenThresholdReachedOrScheduleCheck();
-                CheckConnectedStateStarted = true;
-            }
+//        public bool CheckConnectedStateStarted { get; set; }
 
-            if ((DateTime.Now - LastValueReceived).TotalMinutes >= 15)
-                CheckConnectedStateStarted = false;
-        }
+//        public async Task UpdateLastMessageReceivedTimestampAsync(DateTime timestamp)
+//        {
+//            LastValueReceived = timestamp;
 
-        public void Delete()
-        {
-            Entity.Current.DeleteState();
-            telemetryClient.TrackEvent("StateDeleted");
-        }
+//            if (!CheckConnectedStateStarted)
+//            {
+//                await SendDisconnectedMqttMessageWhenThresholdReachedOrScheduleCheck();
+//                CheckConnectedStateStarted = true;
+//            }
 
-        public async Task SendDisconnectedMqttMessageWhenThresholdReachedOrScheduleCheck()
-        {
-            if ((DateTime.Now - LastValueReceived).TotalMinutes >= 2)
-            {
-                telemetryClient.TrackEvent("TimeoutDetected");
+//            if ((DateTime.Now - LastValueReceived).TotalMinutes >= 15)
+//            {
+//                CheckConnectedStateStarted = false;
+//            }
+//        }
 
-                try
-                {
-                    await PublishDisconnectedMessageAsync();
-                }
-                catch (Exception ex)
-                {
-                    telemetryClient.TrackException(ex);
-                }
-            }
+//        public void Delete()
+//        {
+//            Entity.Current.DeleteState();
+//            telemetryClient.TrackEvent("StateDeleted");
+//        }
 
-            Entity.Current.SignalEntity<ICallerInfo>(Entity.Current.EntityId, DateTime.Now.AddMinutes(2), async e => await e.SendDisconnectedMqttMessageWhenThresholdReachedOrScheduleCheck());
-            telemetryClient.TrackEvent("TimeoutDetectionScheduled");
-        }
+//        public async Task SendDisconnectedMqttMessageWhenThresholdReachedOrScheduleCheck()
+//        {
+//            if ((DateTime.Now - LastValueReceived).TotalMinutes >= 2)
+//            {
+//                telemetryClient.TrackEvent("TimeoutDetected");
 
-        [FunctionName(nameof(CallerInfo))]
-        public static Task Run([EntityTrigger] IDurableEntityContext ctx)
-            => ctx.DispatchAsync<CallerInfo>();
+//                try
+//                {
+//                    await PublishDisconnectedMessageAsync();
+//                }
+//                catch (Exception ex)
+//                {
+//                    telemetryClient.TrackException(ex);
+//                }
+//            }
 
-        private async Task PublishDisconnectedMessageAsync()
-        {
-            var connectionString = new MqttConnectionString(Environment.GetEnvironmentVariable("MqttConnection"), "CustomConfiguration");
+//            Entity.Current.SignalEntity<ICallerInfo>(Entity.Current.EntityId, DateTime.Now.AddMinutes(2), async e => await e.SendDisconnectedMqttMessageWhenThresholdReachedOrScheduleCheck());
+//            telemetryClient.TrackEvent("TimeoutDetectionScheduled");
+//        }
 
-            var factory = new MqttFactory();
-            var mqttClient = factory.CreateMqttClient();
-            var options = new MqttClientOptionsBuilder()
-                                .WithClientId(connectionString.ClientId)
-                                .WithTcpServer(connectionString.Server)
-                                .WithCredentials(connectionString.Username, connectionString.Password)
-                                .Build();
-            await mqttClient.ConnectAsync(options);
+//        [Function(nameof(CallerInfo))]
+//        public static Task Run([EntityTrigger] TaskEntityDispatcher dispatcher)
+//            => dispatcher.DispatchAsync(s => s.c<CallerInfo>();
 
-            var message = new MqttApplicationMessageBuilder()
-                            .WithTopic("azsphere/status")
-                            .WithPayload("disconnected")
-                            .Build();
+//        private async Task PublishDisconnectedMessageAsync()
+//        {
+//            //var connectionString = new MqttConnectionString(Environment.GetEnvironmentVariable("MqttConnection"), "CustomConfiguration");
 
-            await mqttClient.PublishAsync(message, CancellationToken.None);
-            telemetryClient.TrackEvent("DisconnectedMessagePublished");
-        }
-    }
-}
+//            //var factory = new MqttFactory();
+//            //var mqttClient = factory.CreateMqttClient();
+//            //var options = new MqttClientOptionsBuilder()
+//            //                    .WithClientId(connectionString.ClientId)
+//            //                    .WithTcpServer(connectionString.Server)
+//            //                    .WithCredentials(connectionString.Username, connectionString.Password)
+//            //                    .Build();
+//            //await mqttClient.ConnectAsync(options);
+
+//            //var message = new MqttApplicationMessageBuilder()
+//            //                .WithTopic("azsphere/status")
+//            //                .WithPayload("disconnected")
+//            //                .Build();
+
+//            //await mqttClient.PublishAsync(message, CancellationToken.None);
+//            telemetryClient.TrackEvent("DisconnectedMessagePublished");
+//        }
+
+//        public ValueTask<object?> RunAsync(TaskEntityOperation operation)
+//        {
+//            operation.Context.SignalEntity(Entity.Current.EntityId, "UpdateLastMessageReceivedTimestampAsync", DateTime.Now);
+//        }
+//    }
+//}
