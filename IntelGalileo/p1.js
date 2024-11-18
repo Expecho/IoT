@@ -1,9 +1,6 @@
 var Serialport = require("serialport").SerialPort;
 var five = require("johnny-five");
 var Galileo = require("galileo-io");
-var AzureIotCentralClient = require('azure-iot-device').Client;
-var Protocol = require('azure-iot-device-mqtt').Mqtt;
-var Message = require('azure-iot-device').Message;
 var secrets = require('./secrets');
 var parsePacket = require('./DSMRPacketParser');
 var mqtt = require('mqtt');
@@ -11,15 +8,19 @@ var ping = require('ping');
 
 // Define clients
 var mqttClient = mqtt.connect({
-  host: 'farmer.cloudmqtt.com',
-  port: 11245,
+  host: secrets.mqttHost,
+  port: secrets.mqttPort,
   username: secrets.mqttUsr,
   password: secrets.mqttPwd,
+  protocol: 'mqtts',
   will: {
     topic: 'galileo/status',
     payload: "disconnected"
-  }
+  },
+  rejectUnauthorized: false
 });
+
+console.log("using host: " + secrets.mqttHost);
 
 // State variables
 var received = '';
@@ -71,19 +72,14 @@ board.on("ready", function () {
           received = '';
 
           if (parsedPacket.timestamp == null) {
-            console.log("Invalid reading: " + parsedPacket);
+            console.log("Invalid reading: " + JSON.stringify(parsedPacket));
             return;
           }
 
           var jsonMessage = createJsonFromParsedData(parsedPacket);
           mqttClient.publish("sensor/p1", jsonMessage);
 
-          var azureIotCentralClient = AzureIotCentralClient.fromConnectionString(secrets.iotConn, Protocol);
-          azureIotCentralClient.sendEvent(new Message(jsonMessage), function (err) {
-            if (err) {
-              console.log("Send failed: " + err);
-            }
-          });
+          console.log("Published to sensor/p1");
         }, cfg);
       }
     });
