@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MQTTnet;
 using MQTTnet.Client;
@@ -10,7 +11,7 @@ namespace MqttFunction
 {
     public record MqttMessage(string Topic, byte[] Payload);
 
-    public class MqttPublisher(MqttFactory mqttFactory, IOptions<MqttOptions> mqttOptions)
+    public class MqttPublisher(MqttFactory mqttFactory, IOptions<MqttOptions> mqttOptions, ILogger<MqttPublisher> log)
     {
         public async Task PublishAsync(IEnumerable<MqttMessage> messages)
         {
@@ -19,6 +20,7 @@ namespace MqttFunction
             var mqttClientOptions = new MqttClientOptionsBuilder()
                 .WithTcpServer(mqttOptions.Value.Server, mqttOptions.Value.Port)
                 .WithCredentials(mqttOptions.Value.Username, mqttOptions.Value.Password)
+                .WithTlsOptions(o => o.UseTls(mqttOptions.Value.UseTls))
                 .Build();
 
             try
@@ -27,7 +29,9 @@ namespace MqttFunction
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An error occurred while connecting to the MQTT broker: {ex.Message}");
+                log.LogError(ex, "Failed to connect to MQTT broker {Server}:{Port} (TLS: {UseTls})",
+                    mqttOptions.Value.Server, mqttOptions.Value.Port, mqttOptions.Value.UseTls);
+                throw;
             }
 
             foreach (var message in messages)
