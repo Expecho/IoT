@@ -10,17 +10,17 @@ on:
 env:
   AZURE_FUNCTIONAPP_NAME: azuresphere-exp
   AZURE_FUNCTIONAPP_PACKAGE_PATH: 'AzureSphere/MqttFunction'
-  DOTNET_VERSION: '6.0.x'
+  DOTNET_VERSION: '10.0.x'
 
 jobs:
   build-and-deploy:
     runs-on: windows-latest
     steps:
     - name: 'Checkout GitHub Action'
-      uses: actions/checkout@master
+      uses: actions/checkout@v4
 
     - name: Setup DotNet ${{ env.DOTNET_VERSION }} Environment
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
@@ -28,7 +28,7 @@ jobs:
       shell: pwsh
       run: |
         pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
-        dotnet build --configuration Release --output ./output
+        dotnet publish --configuration Release --runtime win-x86 --self-contained false --output ./output
         popd
         
     - name: 'Run Azure Functions Action'
